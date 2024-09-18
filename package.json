@@ -1,0 +1,36 @@
+{
+  "name": "ro-crate-zip-explorer",
+  "version": "0.1.0",
+  "description": "A TypeScript library for browsing and extracting contents within RO-Crate zip archives.",
+  "main": "dist/index.js",
+  "scripts": {
+    "check-exports": "attw --pack . --ignore-rules=cjs-resolves-to-esm",
+    "check-format": "prettier --check .",
+    "build": "tsc",
+    "test": "vitest run",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "RO-Crate",
+    "zip",
+    "explorer",
+    "library",
+    "TypeScript"
+  ],
+  "author": "davelopez",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.16.4",
+    "@types/node": "^22.5.5",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}
