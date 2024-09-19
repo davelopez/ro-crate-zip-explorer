@@ -3,7 +3,7 @@ import * as path from "path";
 import * as util from "util";
 
 import { ROCrateZipExplorer } from "./explorer";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 const readFile = util.promisify(fs.readFile);
 
@@ -13,12 +13,12 @@ describe("ROCrateZipExplorer", () => {
 
     const file = await getTestZipFile();
 
-    const metadata = await explorer.openZipFile(file);
+    const crate = await explorer.openZipFile(file);
 
-    expect(metadata).toBeDefined();
-    expect(metadata["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
-    expect(metadata["@graph"]).toBeDefined();
-    expect(metadata["@graph"].length).toBeGreaterThan(0);
+    expect(crate).toBeDefined();
+    expect(crate["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
+    expect(crate["@graph"]).toBeDefined();
+    expect(crate["@graph"].length).toBeGreaterThan(0);
   });
 });
 
