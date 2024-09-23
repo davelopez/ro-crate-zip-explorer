@@ -4,14 +4,14 @@ import { ROCrate } from "ro-crate";
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 
 export class ROCrateZipExplorer {
-  async openZipFile(file: File): Promise<any> {
+  async openZipFile(file: File): Promise<ROCrate> {
     const arrayBuffer = await file.arrayBuffer();
     const zip = new JSZip();
     const content = await zip.loadAsync(arrayBuffer);
     return await this.readROCrateMetadata(content);
   }
 
-  async openZipUrl(url: string): Promise<any> {
+  async openZipUrl(url: string): Promise<ROCrate> {
     const response = await fetch(url);
     const blob = await response.blob();
     const zip = new JSZip();
