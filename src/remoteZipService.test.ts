@@ -17,12 +17,17 @@ describe("remoteZipService", () => {
       const files = await listFiles(validZipUrl);
       expect(files.length).toBeGreaterThan(0);
       const remoteMetadataFile = files.find((file) => file.filename === "ro-crate-metadata.json");
-      expect(remoteMetadataFile).toBeDefined();
 
-      const metadataFile = await extractFile(remoteMetadataFile!, validZipUrl);
-      expect(metadataFile).toBeDefined();
+      if (!remoteMetadataFile) {
+        throw new Error("No RO-Crate metadata file found in the ZIP archive");
+      }
 
-      const json = JSON.parse(metadataFile.toString());
+      const metadataFileData = await extractFile(remoteMetadataFile, validZipUrl);
+      expect(metadataFileData).toBeDefined();
+
+      const metadataFileText = new TextDecoder().decode(metadataFileData);
+
+      const json = JSON.parse(metadataFileText);
       expect(json["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
     });
   });
