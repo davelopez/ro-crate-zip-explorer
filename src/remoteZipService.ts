@@ -1,8 +1,7 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
 import { getRange } from "./utils/rangeFetcher";
-import * as stream from "stream";
-import * as zlib from "zlib";
+import * as pako from "pako";
 
 /**
  * Represents information about an entry in a ZIP archive.
@@ -52,26 +51,29 @@ export async function listFiles(url: string): Promise<ZipEntryInfo[]> {
     const cdirData = await getCentralDirectory(Number(contentLength), url);
     const files = [];
 
+    const dataView = new DataView(cdirData.buffer);
     let offset = 0;
     while (offset < cdirData.length) {
-      const fileNameLength = cdirData.readUInt16LE(offset + 28);
-      const extraFieldLength = cdirData.readUInt16LE(offset + 30);
-      const fileName = cdirData.subarray(offset + 46, offset + 46 + fileNameLength).toString("utf-8");
+      const fileNameLength = dataView.getUint16(offset + 28, true);
+      const extraFieldLength = dataView.getUint16(offset + 30, true);
+      const fileNameStartOffset = offset + 46;
+      const extractedFileName = cdirData.subarray(fileNameStartOffset, fileNameStartOffset + fileNameLength);
+      const fileName = new TextDecoder().decode(extractedFileName);
 
-      const compressSize = cdirData.readUInt32LE(offset + 20);
-      const uncompressSize = cdirData.readUInt32LE(offset + 24);
+      const compressSize = dataView.getUint32(offset + 20, true);
+      const uncompressSize = dataView.getUint32(offset + 24, true);
 
       const fileInfo = createZipEntryInfo(
         fileName,
-        cdirData.readUInt32LE(offset + 12),
-        cdirData.readUInt32LE(offset + 42),
-        cdirData.readUInt16LE(offset + 10),
+        dataView.getUint32(offset + 12, true),
+        dataView.getUint32(offset + 42, true),
+        dataView.getUint16(offset + 10, true),
         compressSize,
         uncompressSize,
       );
 
       files.push(fileInfo);
-      offset += 46 + fileNameLength + extraFieldLength + cdirData.readUInt16LE(offset + 32);
+      offset += 46 + fileNameLength + extraFieldLength + dataView.getUint16(offset + 32, true);
     }
 
     return files;
@@ -85,29 +87,26 @@ export async function listFiles(url: string): Promise<ZipEntryInfo[]> {
  * Extracts a single file from a remote ZIP archive.
  * @param file - The file information object.
  * @param url - The URL of the ZIP file.
- * @returns A promise that resolves with the content when the file is processed.
+ * @returns A promise that resolves with the content as a Uint8Array.
  */
-export async function extractFile(file: ZipEntryInfo, url: string): Promise<Buffer> {
+export async function extractFile(file: ZipEntryInfo, url: string): Promise<Uint8Array> {
   try {
     if (file.isDir()) throw new Error("Cannot extract a directory from a ZIP file.");
 
     const fileDataOffset = await getFileDataOffset(url, file);
     const fileData = await getRange(url, fileDataOffset, file.compressSize);
 
-    if (file.compressSize > 0 && fileData.length !== file.compressSize) {
+    if (file.compressSize > 0 && fileData.byteLength !== file.compressSize) {
       throw new Error("File data size mismatch.");
     }
 
-    let fileStream;
     if (file.compressType === 0) {
-      fileStream = stream.Readable.from(fileData);
+      return fileData;
     } else if (file.compressType === 8) {
-      fileStream = stream.Readable.from(fileData).pipe(zlib.createInflateRaw());
+      return pako.inflateRaw(fileData);
     } else {
       throw new Error(`Unsupported compression method: ${file.compressType}`);
     }
-
-    return await downloadFile(fileStream);
   } catch (error) {
     console.error(`Error opening ZIP file entry: ${file.filename}`, error);
     throw error;
@@ -116,18 +115,11 @@ export async function extractFile(file: ZipEntryInfo, url: string): Promise<Buff
 
 async function getFileDataOffset(url: string, file: ZipEntryInfo) {
   const localHeaderData = await getRange(url, file.headerOffset, 30);
-  const fileNameLength = localHeaderData.readUInt16LE(26);
-  const extraFieldLength = localHeaderData.readUInt16LE(28);
+  const dataView = new DataView(localHeaderData.buffer);
+  const fileNameLength = dataView.getUint16(26, true);
+  const extraFieldLength = dataView.getUint16(28, true);
   const fileDataOffset = file.headerOffset + 30 + fileNameLength + extraFieldLength;
   return fileDataOffset;
-}
-
-async function downloadFile(fileStream: stream.Readable): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of fileStream) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
 }
 
 /**
@@ -141,18 +133,31 @@ async function getCentralDirectory(zipSize: number, url: string) {
     const rangeStart = Math.max(zipSize - 65536, 0);
     const rangeLength = Math.min(zipSize, 65536);
     const eocdData = await getRange(url, rangeStart, rangeLength);
-    const eocdOffset = eocdData.lastIndexOf(Buffer.from("504b0506", "hex"));
+    const eocdOffset = findCentralDirectoryOffset(eocdData);
 
     if (eocdOffset === -1) throw new Error("Cannot find the End of Central Directory (EOCD) in the ZIP file.");
 
-    const cdirOffset = eocdData.readUInt32LE(eocdOffset + 16);
-    const cdirSize = eocdData.readUInt32LE(eocdOffset + 12);
+    const dataView = new DataView(eocdData.buffer);
+    const cdirOffset = dataView.getUint32(eocdOffset + 16, true);
+    const cdirSize = dataView.getUint32(eocdOffset + 12, true);
 
     return getRange(url, cdirOffset, cdirSize);
   } catch (error) {
     console.error("Error fetching Central Directory:", error);
     throw error;
   }
+}
+
+function findCentralDirectoryOffset(data: Uint8Array) {
+  const dataView = new DataView(data.buffer);
+  let offset = data.length - 22;
+  while (offset >= 0) {
+    if (dataView.getUint32(offset, true) === 0x06054b50) {
+      return offset;
+    }
+    offset--;
+  }
+  return -1;
 }
 
 /**

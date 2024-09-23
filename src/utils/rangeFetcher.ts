@@ -27,7 +27,7 @@ export async function fetchByteRange(url: string, start: number, end: number) {
  * @param length - The length of the byte range to fetch.
  * @returns A promise that resolves with the fetched byte range as a Buffer.
  */
-export async function getRange(url: string, start: number, length: number): Promise<Buffer> {
+export async function getRange(url: string, start: number, length: number): Promise<Uint8Array> {
   const response = await fetch(url, {
     headers: { Range: `bytes=${start}-${start + length - 1}` },
   });
@@ -38,5 +38,6 @@ export async function getRange(url: string, start: number, length: number): Prom
     );
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }
