@@ -28,6 +28,36 @@ export default [
           allowNumber: true,
         },
       ],
+      // Disallow the use of Buffer. Not supported in browser environments.
+      "@typescript-eslint/no-restricted-types": [
+        "error",
+        {
+          types: {
+            Buffer: {
+              message: "Use Uint8Array instead.",
+              suggest: ["Uint8Array"],
+            },
+          },
+        },
+      ],
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "Buffer",
+          message: "Use Uint8Array instead.",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          name: "buffer",
+          message: "Use Uint8Array instead.",
+        },
+        {
+          name: "node:buffer",
+          message: "Use Uint8Array instead.",
+        },
+      ],
     },
   },
 ];
