@@ -16,9 +16,9 @@ describe("ROCrateZipExplorer", () => {
     const crate = await explorer.openZipFile(file);
 
     expect(crate).toBeDefined();
-    expect(crate["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
-    expect(crate["@graph"]).toBeDefined();
-    expect(crate["@graph"].length).toBeGreaterThan(0);
+    expect(crate.context).toBe("https://w3id.org/ro/crate/1.1/context");
+    expect(crate.graph).toBeDefined();
+    expect(crate.graph.length).toBeGreaterThan(0);
   });
 });
 

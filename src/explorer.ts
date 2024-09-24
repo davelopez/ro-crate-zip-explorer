@@ -24,7 +24,7 @@ export class ROCrateZipExplorer {
     if (!roCrateMetadata) {
       throw new Error("No RO-Crate metadata file found in the ZIP archive");
     }
-    const json = JSON.parse(roCrateMetadata);
+    const json = JSON.parse(roCrateMetadata) as Record<string, unknown>;
     const crate = new ROCrate(json, { array: false, link: true });
     return crate;
   }

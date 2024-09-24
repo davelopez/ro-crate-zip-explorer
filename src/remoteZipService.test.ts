@@ -27,7 +27,7 @@ describe("remoteZipService", () => {
 
       const metadataFileText = new TextDecoder().decode(metadataFileData);
 
-      const json = JSON.parse(metadataFileText);
+      const json = JSON.parse(metadataFileText) as Record<string, unknown>;
       expect(json["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
     });
   });

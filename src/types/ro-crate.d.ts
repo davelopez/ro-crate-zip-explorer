@@ -5,18 +5,18 @@ declare module "ro-crate" {
    * Class for building, navigating, testing and rendering ROCrates
    */
   declare class ROCrate {
-    constructor(json: any, config?: ROCrateConfig);
+    constructor(json: unknown, config?: ROCrateConfig);
 
     /**
      * The context part of the crate. An alias for '@context'.
      * This returns the original context information.
      */
-    context: any[];
+    context: unknown[];
 
     /**
      * An array of all nodes in the graph. An alias for '@graph'
      */
-    graph: any[];
+    graph: unknown[];
 
     graphSize: number;
     metadataFileEntity: Entity;
@@ -66,7 +66,7 @@ declare module "ro-crate" {
     toJSON();
   }
 
-  declare function validate(crate: ROCrate, files: any): Promise<ValidationResults>;
+  declare function validate(crate: ROCrate, files: unknown): Promise<ValidationResults>;
 
   interface ROCrateConfig {
     /** Always return property of an Entity as an array (eg when using getEntity() method) */
@@ -97,20 +97,20 @@ declare module "ro-crate" {
 
   type ValidationResults = ValidationEntry[];
 
-  type Entity = {
+  interface Entity {
     "@id": string;
-    "@reverse": { [key: string]: any };
+    "@reverse": Record<string, unknown>;
     toJSON(): RawEntity;
-    [key: string]: any;
-  };
+    [key: string]: unknown;
+  }
 
-  type RawEntity = {
+  interface RawEntity {
     "@id": string;
-    [key: string]: any;
-  };
+    [key: string]: unknown;
+  }
 
-  type NodeRef = {
+  interface NodeRef {
     "@id": string;
-    "@reverse": { [key: string]: any };
-  };
+    "@reverse": Record<string, unknown>;
+  }
 }

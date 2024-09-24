@@ -113,7 +113,7 @@ export async function extractFile(file: ZipEntryInfo, url: string): Promise<Uint
   }
 }
 
-async function getFileDataOffset(url: string, file: ZipEntryInfo) {
+async function getFileDataOffset(url: string, file: ZipEntryInfo): Promise<number> {
   const localHeaderData = await getRange(url, file.headerOffset, 30);
   const dataView = new DataView(localHeaderData.buffer);
   const fileNameLength = dataView.getUint16(26, true);
@@ -141,7 +141,7 @@ async function getCentralDirectory(zipSize: number, url: string) {
     const cdirOffset = dataView.getUint32(eocdOffset + 16, true);
     const cdirSize = dataView.getUint32(eocdOffset + 12, true);
 
-    return getRange(url, cdirOffset, cdirSize);
+    return await getRange(url, cdirOffset, cdirSize);
   } catch (error) {
     console.error("Error fetching Central Directory:", error);
     throw error;
