@@ -13,7 +13,7 @@ describe("ROCrateZipExplorer", () => {
 
     const file = await getTestZipFile();
 
-    const crate = await explorer.openZipFile(file);
+    const crate = (await explorer.openZipFile(file)).crate;
 
     expect(crate).toBeDefined();
     expect(crate.context).toBe("https://w3id.org/ro/crate/1.1/context");
