@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A TypeScript library for browsing and extracting contents within RO-Crate zip archives.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "check-exports": "attw --pack . --ignore-rules=cjs-resolves-to-esm",
     "check-format": "prettier --check .",
