@@ -1,4 +1,4 @@
-import { getRange, validateUrl } from "./utils";
+import { getRange, validateUrl } from "../utils";
 import { AbstractZipService } from "./zipService";
 
 export class RemoteZipService extends AbstractZipService {

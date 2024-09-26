@@ -1,10 +1,25 @@
 import { ROCrate } from "ro-crate";
-import type { ROCrateZip, ZipEntryInfo, ZipService } from "./interfaces";
-import { LocalZipService } from "./localZipService";
-import { RemoteZipService } from "./remoteZipService";
+
+import { LocalZipService, RemoteZipService } from "./zip";
+import type { ZipService, ZipEntryInfo, ROCrateZip } from "./interfaces.js";
+
+export type { ROCrateZip };
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 
+/**
+ * A class for exploring the contents of a ZIP archive containing an RO-Crate manifest.
+ *
+ * You can either pass a File object representing a ZIP archive or a URL string pointing to a remotely hosted ZIP archive.
+ *
+ * Example usage:
+ * ```typescript
+ * const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
+ * const { crate, files } = await explorer.open();
+ * console.log(crate.context);
+ * console.log(files);
+ * ```
+ */
 export class ROCrateZipExplorer {
   private zipService: ZipService;
 

@@ -1,2 +1,1 @@
-export { ROCrateZipExplorer } from "./explorer";
-export type { ROCrateZip } from "./interfaces";
+export { ROCrateZipExplorer, type ROCrateZip } from "./explorer.js";

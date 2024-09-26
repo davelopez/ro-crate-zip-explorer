@@ -1,6 +1,6 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
-import type { ZipEntryInfo, ZipService } from "./interfaces";
+import type { ZipEntryInfo, ZipService } from "../interfaces";
 import * as pako from "pako";
 
 const MAX_EOCD_SIZE = 65536;
