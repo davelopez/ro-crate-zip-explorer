@@ -1,10 +1,19 @@
+import * as fs from "fs";
+import * as path from "path";
+import * as util from "util";
 import { describe, it, expect } from "vitest";
-import { RemoteZipService } from "./remoteZipService";
+import { LocalZipService } from "./localZipService";
 
-describe("RemoteZipService", () => {
-  const zipService = new RemoteZipService(
-    "https://github.com/davelopez/ro-crate-zip-explorer/raw/main/test-data/simple-invocation.rocrate.zip",
-  );
+const readFile = util.promisify(fs.readFile);
+
+async function getTestZipFile() {
+  const zipContents = await readFile(path.resolve(__dirname, "..", "test-data", "simple-invocation.rocrate.zip"));
+  const file = new File([zipContents], "simple-invocation.rocrate.zip");
+  return file;
+}
+
+describe("LocalZipService", async () => {
+  const zipService = new LocalZipService(await getTestZipFile());
 
   describe("listFiles", () => {
     it("should return a list with all the files and directories contained in the remote Zip archive", async () => {

@@ -9,12 +9,9 @@ const readFile = util.promisify(fs.readFile);
 
 describe("ROCrateZipExplorer", () => {
   it("openZipFile", async () => {
-    const explorer = new ROCrateZipExplorer();
-
     const file = await getTestZipFile();
-
-    const crate = (await explorer.openZipFile(file)).crate;
-
+    const explorer = new ROCrateZipExplorer(file);
+    const { crate } = await explorer.open();
     expect(crate).toBeDefined();
     expect(crate.context).toBe("https://w3id.org/ro/crate/1.1/context");
     expect(crate.graph).toBeDefined();
