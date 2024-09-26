@@ -7,6 +7,7 @@
   "scripts": {
     "check-exports": "attw --pack . --ignore-rules=cjs-resolves-to-esm",
     "check-format": "prettier --check .",
+    "prebuild": "rm -rf dist",
     "build": "tsc",
     "lint": "eslint .",
     "test": "vitest run",
