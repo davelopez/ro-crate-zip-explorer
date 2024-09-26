@@ -13,7 +13,7 @@ export default [
     },
   },
   {
-    ignores: ["dist", "eslint.config.js"],
+    ignores: ["dist", "eslint.config.js", "examples"],
   },
   jseslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
