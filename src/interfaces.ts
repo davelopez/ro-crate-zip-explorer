@@ -9,6 +9,24 @@ export interface ROCrateZip {
 }
 
 /**
+ * Represents a service for working with ZIP archives.
+ */
+export interface ZipService {
+  /**
+   * Lists entries (files and directories) from the Central Directory of a ZIP file.
+   * @returns A promise that resolves with an array of ZipEntryInfo objects.
+   */
+  listFiles(): Promise<ZipEntryInfo[]>;
+
+  /**
+   * Extracts a single file from a ZIP archive.
+   * @param file - The file information object.
+   * @returns A promise that resolves with the file content as a Uint8Array.
+   */
+  extractFile(file: ZipEntryInfo): Promise<Uint8Array>;
+}
+
+/**
  * Represents information about an entry in a ZIP archive.
  */
 export interface ZipEntryInfo {
