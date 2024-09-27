@@ -6,3 +6,5 @@ dist/
 !**/.vscode/settings.template.json
 !**/.vscode/launch.template.json
 !**/.vscode/extensions.json
+
+coverage/

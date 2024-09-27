@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.settings.json",
+  "compilerOptions": {
+    /* Transpilation */
+    "outDir": "../out/tests"
+  },
+  "include": ["./**/*.ts"],
+  "files": []
+}

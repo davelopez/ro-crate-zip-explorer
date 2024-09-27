@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RemoteZipService } from "./remoteZipService";
+import { RemoteZipService } from "../../src/zip/remoteZipService";
 
 describe("RemoteZipService", () => {
   const zipService = new RemoteZipService(
