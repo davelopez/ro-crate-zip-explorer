@@ -1,8 +1,6 @@
 import { ROCrate } from "ro-crate";
-
+import type { ROCrateZip, ZipEntryInfo, ZipService } from "./interfaces.js";
 import { LocalZipService, RemoteZipService } from "./zip";
-import type { ZipService, ZipEntryInfo, ROCrateZip } from "./interfaces.js";
-
 export type { ROCrateZip };
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";

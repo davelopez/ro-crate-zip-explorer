@@ -1,6 +1,6 @@
+import jseslint from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import jseslint from "@eslint/js";
 
 export default [
   {
