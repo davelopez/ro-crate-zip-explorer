@@ -1,21 +1,27 @@
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { ZipService } from "../src/interfaces";
 import { LocalZipService } from "../src/zip/localZipService";
-import fs from "fs";
-import path from "path";
-import util from "util";
+import { RemoteZipService } from "../src/zip/remoteZipService";
+import { testFileProvider } from "./testUtils";
 
-const readFile = util.promisify(fs.readFile);
+describe("LocalZipService Implementation", async () => {
+  const file = await testFileProvider.local("simple-invocation.rocrate.zip");
 
-async function getTestZipFile() {
-  const zipContents = await readFile(
-    path.resolve(__dirname, "..", "tests", "test-data", "simple-invocation.rocrate.zip"),
-  );
-  const file = new File([zipContents], "simple-invocation.rocrate.zip");
-  return file;
-}
+  testZipService(() => new LocalZipService(file));
+});
 
-describe("LocalZipService", async () => {
-  const zipService = new LocalZipService(await getTestZipFile());
+describe("RemoteZipService Implementation", async () => {
+  const url = await testFileProvider.remote("simple-invocation.rocrate.zip");
+
+  testZipService(() => new RemoteZipService(url));
+});
+
+const testZipService = (createZipService: () => ZipService) => {
+  let zipService: ZipService;
+
+  beforeAll(() => {
+    zipService = createZipService();
+  });
 
   describe("listFiles", () => {
     it("should return a list with all the files and directories contained in the remote Zip archive", async () => {
@@ -43,4 +49,4 @@ describe("LocalZipService", async () => {
       expect(json["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
     });
   });
-});
+};
