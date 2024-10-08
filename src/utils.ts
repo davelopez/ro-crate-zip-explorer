@@ -54,3 +54,47 @@ export function validateUrl(url: string) {
     throw new Error(`Invalid URL: ${url}`);
   }
 }
+
+export async function followRedirects(url: string): Promise<string> {
+  let currentUrl = url;
+  let response: Response;
+
+  do {
+    // Send a HEAD request to only get headers without downloading the body
+    response = await fetch(currentUrl, {
+      method: "HEAD",
+      redirect: "manual", // Prevent automatic following of redirects
+    });
+
+    if (isRedirectStatus(response.status)) {
+      // Get the new URL from the "Location" header
+      const location = response.headers.get("Location");
+      if (location) {
+        // If the location is relative, resolve it against the current URL
+        const locationIsRelative = !location.startsWith("http");
+        if (locationIsRelative) {
+          const currentUrlObj = new URL(currentUrl);
+          currentUrl = new URL(location, currentUrlObj).toString();
+        } else {
+          currentUrl = location;
+        }
+      } else {
+        throw new Error("Redirect location missing in response");
+      }
+    } else {
+      // If it's not a redirect status, we've reached the final URL
+      break;
+    }
+  } while (isRedirectStatus(response.status));
+
+  return currentUrl;
+}
+
+/**
+ * Checks if a status code is a redirect status code.
+ * @param status - The status code to check.
+ * @returns `true` if the status code is a redirect status code, otherwise `false`.
+ */
+function isRedirectStatus(status: number): boolean {
+  return status >= 300 && status < 400;
+}
