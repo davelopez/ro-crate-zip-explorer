@@ -13,15 +13,29 @@ export interface ROCrateZip {
  */
 export interface ZipService {
   /**
-   * Lists entries (files and directories) from the Central Directory of a ZIP file.
-   * @returns A promise that resolves with an array of ZipEntryInfo objects.
+   * Opens the ZIP archive and performs any necessary initialization.
+   *
+   * @throws Throws an error if the ZIP archive cannot be opened.
    */
-  listFiles(): Promise<ZipEntryInfo[]>;
+  open(): Promise<void>;
+
+  /**
+   * The list of files in the ZIP archive.
+   * @throws Throws an error if the service is not initialized.
+   */
+  get zipContents(): ZipEntryInfo[];
+
+  /**
+   * The total size of the ZIP archive in bytes.
+   * @throws Throws an error if the service is not initialized.
+   */
+  get zipSize(): number;
 
   /**
    * Extracts a single file from a ZIP archive.
    * @param file - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
+   * @throws Throws an error if the service is not initialized or if the file cannot be extracted.
    */
   extractFile(file: ZipEntryInfo): Promise<Uint8Array>;
 }

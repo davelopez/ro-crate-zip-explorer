@@ -26,7 +26,8 @@ export class ROCrateZipExplorer {
   }
 
   async open(): Promise<ROCrateZip> {
-    const files = await this.zipService.listFiles();
+    await this.zipService.open();
+    const files = this.zipService.zipContents;
     const crateEntry = this.findCrateEntry(files);
     const crate = await this.extractROCrateMetadata(crateEntry);
     return { crate, files };

@@ -5,6 +5,14 @@ export class LocalZipService extends AbstractZipService {
     super();
   }
 
+  public override async doOpen(): Promise<void> {
+    // Nothing to do here for now.
+  }
+
+  public get zipSize(): number {
+    return this.zipFile.size;
+  }
+
   protected override async getRange(start: number, length: number): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -21,9 +29,5 @@ export class LocalZipService extends AbstractZipService {
       const blob = this.zipFile.slice(start, start + length);
       reader.readAsArrayBuffer(blob);
     });
-  }
-
-  protected override getZipSize(): Promise<number> {
-    return Promise.resolve(this.zipFile.size);
   }
 }

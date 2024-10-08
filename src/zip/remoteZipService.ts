@@ -1,25 +1,25 @@
-import { getRange, validateUrl } from "../utils";
+import { ensureUrlSupportsRanges, followRedirects, getRange, validateUrl, type RangeSupport } from "../utils";
 import { AbstractZipService } from "./zipService";
 
 export class RemoteZipService extends AbstractZipService {
-  constructor(private url: string) {
-    validateUrl(url);
+  private url: string;
+  private rangeSupport?: RangeSupport;
+
+  constructor(private originalUrl: string) {
     super();
+    this.url = validateUrl(originalUrl);
+  }
+
+  protected override async doOpen(): Promise<void> {
+    this.url = await followRedirects(this.url);
+    this.rangeSupport = await ensureUrlSupportsRanges(this.url);
+  }
+
+  public get zipSize(): number {
+    return this.rangeSupport?.contentLength ?? 0;
   }
 
   protected override async getRange(start: number, length: number): Promise<Uint8Array> {
     return getRange(this.url, start, length);
-  }
-
-  protected override async getZipSize(): Promise<number> {
-    const headResponse = await fetch(this.url, { method: "HEAD" });
-
-    const acceptRanges = headResponse.headers.get("accept-ranges");
-    if (!acceptRanges || acceptRanges === "none") throw new Error("The server doesn't support range requests.");
-
-    const contentLength = headResponse.headers.get("content-length");
-    if (!contentLength) throw new Error("Cannot get content length of remote ZIP file.");
-
-    return Number(contentLength);
   }
 }

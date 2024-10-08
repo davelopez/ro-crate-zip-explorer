@@ -6,7 +6,43 @@ import type { ZipEntryInfo, ZipService } from "../interfaces";
 const MAX_EOCD_SIZE = 65536;
 
 export abstract class AbstractZipService implements ZipService {
-  public async listFiles(): Promise<ZipEntryInfo[]> {
+  protected initialized = false;
+
+  protected _zipContents?: ZipEntryInfo[];
+
+  public async open(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+    await this.doOpen();
+    this.initialized = true;
+    this._zipContents = await this.listFiles();
+  }
+
+  /** Perform internal operations to open the ZIP archive depending on the service type. */
+  protected abstract doOpen(): Promise<void>;
+
+  /**
+   * The total size of the ZIP archive in bytes.
+   */
+  public abstract get zipSize(): number;
+
+  /**
+   * The list of files in the ZIP archive.
+   */
+  public get zipContents(): ZipEntryInfo[] {
+    this.checkInitialized();
+    if (!this._zipContents) {
+      throw new Error("ZIP contents not loaded.");
+    }
+    return this._zipContents;
+  }
+
+  protected async listFiles(): Promise<ZipEntryInfo[]> {
+    if (this._zipContents) {
+      return this._zipContents;
+    }
+
     try {
       const centralDirectoryData = await this.getCentralDirectory();
       const files = [];
@@ -103,7 +139,7 @@ export abstract class AbstractZipService implements ZipService {
    * @returns A promise that resolves with the EOCD data.
    */
   private async retrieveEOCDData(): Promise<Uint8Array> {
-    const zipSize = await this.getZipSize();
+    const zipSize = this.zipSize;
     const rangeStart = Math.max(zipSize - MAX_EOCD_SIZE, 0);
     const rangeLength = Math.min(zipSize, MAX_EOCD_SIZE);
     const eocdData = await this.getRange(rangeStart, rangeLength);
@@ -179,13 +215,14 @@ export abstract class AbstractZipService implements ZipService {
     return dateTime;
   }
 
+  private checkInitialized() {
+    if (!this.initialized) {
+      throw new Error("Service not initialized. Call open() first.");
+    }
+  }
+
   /**
    * Fetches a range of bytes from the ZIP archive.
    */
   protected abstract getRange(start: number, length: number): Promise<Uint8Array>;
-
-  /**
-   * Retrieves the total size of the ZIP archive.
-   */
-  protected abstract getZipSize(): Promise<number>;
 }
