@@ -19,20 +19,21 @@ describe("RemoteZipService Implementation", async () => {
 const testZipService = (createZipService: () => ZipService) => {
   let zipService: ZipService;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     zipService = createZipService();
+    await zipService.open();
   });
 
   describe("listFiles", () => {
-    it("should return a list with all the files and directories contained in the remote Zip archive", async () => {
-      const files = await zipService.listFiles();
+    it("should return a list with all the files and directories contained in the remote Zip archive", () => {
+      const files = zipService.zipContents;
       expect(files.length).toBeGreaterThan(0);
     });
   });
 
   describe("extractFile", () => {
     it("should decompress and return the content of the file in the remote Zip archive", async () => {
-      const files = await zipService.listFiles();
+      const files = zipService.zipContents;
       expect(files.length).toBeGreaterThan(0);
       const remoteMetadataFile = files.find((file) => file.filename === "ro-crate-metadata.json");
 
