@@ -1,23 +1,50 @@
-// Borrowed from: https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/utils/rangeFetcher.js
+// Inspired from: https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/utils/rangeFetcher.js
 
 /**
- * Fetches a specific byte range from a given URL.
- * @param url - The URL to fetch the byte range from.
- * @param start - The start byte position of the range.
- * @param end - The end byte position of the range.
- * @returns A promise that resolves with the fetched byte range as a stream.
+ * Contains information about the range support of a URL.
+ * The information is composed from some relevant headers from the response.
+ */
+export interface RangeSupport {
+  acceptRanges: string | null;
+  contentLength: number;
+}
+
+/**
+ * Ensure that the provided URL supports byte ranges.
+ * @param url - The URL to check.
+ * @returns A promise with relevant information about the range support.
  * @throws Throws an error if the fetch request fails.
  */
-export async function fetchByteRange(url: string, start: number, end: number) {
-  const response = await fetch(url, {
-    headers: { Range: `bytes=${start}-${end}` },
+export async function ensureUrlSupportsRanges(url: string): Promise<RangeSupport> {
+  const headResponse = await fetch(url, {
+    method: "HEAD",
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch range ${start}-${end}. Status: ${response.status} ${response.statusText}`);
+  if (!headResponse.ok) {
+    throw new Error(`Failed to fetch headers for URL: '${url}'. Status: ${headResponse.statusText}`);
   }
 
-  return response.body;
+  const contentLength = Number(headResponse.headers.get("content-length"));
+  let acceptRanges = headResponse.headers.get("accept-ranges");
+
+  if (!acceptRanges) {
+    // Some servers may not provide the "Accept-Ranges" header in a HEAD request even if they support range requests.
+    // So intead of relying on the header, we can make a range request for the first byte and check the response status.
+    const response = await fetch(url, {
+      headers: { Range: `bytes=0-0` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`The server doesn't support range requests for URL: '${url}'. Status: ${response.statusText}`);
+    }
+
+    acceptRanges = response.headers.get("accept-ranges");
+  }
+
+  return {
+    acceptRanges,
+    contentLength,
+  };
 }
 
 /**
