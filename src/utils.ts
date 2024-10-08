@@ -72,11 +72,13 @@ export async function getRange(url: string, start: number, length: number): Prom
 /**
  * Validates a URL.
  * @param url - The URL to validate.
+ * @returns The URL if it is valid.
  * @throws Throws an error if the URL is invalid.
  */
-export function validateUrl(url: string) {
+export function validateUrl(url: string): string {
   try {
     new URL(url);
+    return url;
   } catch {
     throw new Error(`Invalid URL: ${url}`);
   }
