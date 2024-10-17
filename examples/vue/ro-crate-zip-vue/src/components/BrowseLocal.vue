@@ -65,7 +65,7 @@ watch(results, async () => {
       </p>
     </div>
 
-    <button :disabled="!browserSupported" @click="fileSystemAccess.open()">Browse</button>
+    <button :disabled="!browserSupported" @click="fileSystemAccess.open()" class="button">Browse</button>
 
     <div v-if="results.fileName">
       <p>

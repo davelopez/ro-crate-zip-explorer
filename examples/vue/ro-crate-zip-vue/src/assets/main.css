@@ -1,5 +1,11 @@
 @import "./base.css";
 
+/* Add a variable with the green color */
+:root {
+  --green: hsla(160, 100%, 37%, 1);
+  --dark-green: hsla(160, 100%, 37%, 0.2);
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
@@ -10,7 +16,7 @@
 a,
 .green {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
+  color: var(--green);
   transition: 0.4s;
   padding: 3px;
 }
@@ -19,9 +25,32 @@ a,
   color: hsla(0, 100%, 37%, 1);
 }
 
+.button {
+  padding: 0.5rem 1rem;
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.button:enabled {
+  background-color: var(--green);
+  color: white;
+}
+
+.button:disabled {
+  color: white;
+}
+
+.button:hover {
+  background-color: var(--dark-green);
+  color: white;
+}
+
 @media (hover: hover) {
   a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+    background-color: var(--dark-green);
   }
 }
 
