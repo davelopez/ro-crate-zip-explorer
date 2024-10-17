@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from "vue";
 import { useFileSystemAccess } from "@vueuse/core";
 import { ROCrateZipExplorer, type ROCrateZip } from "ro-crate-zip-explorer";
+import Explorer from "./Explorer.vue";
 
 const dataType = ref<"Text" | "ArrayBuffer" | "Blob">("ArrayBuffer");
 const fileSystemAccess = useFileSystemAccess({
@@ -77,14 +78,7 @@ watch(results, async () => {
         <span class="green">Last modified:</span> {{ new Date(results.fileLastModified) }}
       </p>
 
-      <div v-if="roCrateZipFile">
-        <h3>RO-Crate Zip file contents</h3>
-        <ul>
-          <li v-for="file in roCrateZipFile.files" :key="file.filename">
-            {{ file.filename }}
-          </li>
-        </ul>
-      </div>
+      <Explorer :ro-crate-zip-file="roCrateZipFile" />
     </div>
   </main>
 </template>
