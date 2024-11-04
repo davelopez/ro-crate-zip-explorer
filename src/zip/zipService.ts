@@ -182,13 +182,13 @@ export abstract class AbstractZipService implements ZipService {
    */
   private createZipEntryInfo(
     filename: string,
-    date_time: number,
+    dateTime: number,
     headerOffset: number,
     compressType: number,
     compressSize: number,
     fileSize: number,
   ): ZipEntryInfo {
-    const dateTime = this.decodeDateTime(date_time);
+    const decodedDateTime = this.decodeDateTime(dateTime);
 
     return {
       filename,
@@ -196,13 +196,13 @@ export abstract class AbstractZipService implements ZipService {
       compressType,
       compressSize,
       fileSize,
-      date_time: dateTime,
+      dateTime: decodedDateTime,
       isDir: () => filename.endsWith("/"),
       isCompressed: () => compressSize !== fileSize,
     };
   }
 
-  private decodeDateTime(date_time: number) {
+  private decodeDateTime(dateTime: number) {
     const getBits = (val: number, ...args: number[]) =>
       args.map((n) => {
         const bit = val & (2 ** n - 1);
@@ -210,9 +210,9 @@ export abstract class AbstractZipService implements ZipService {
         return bit;
       });
 
-    const [sec, mins, hour, day, mon, year] = getBits(date_time, 5, 6, 5, 5, 4, 7);
-    const dateTime = new Date((year ?? 0) + 1980, (mon ?? 1) - 1, day, hour, mins, sec);
-    return dateTime;
+    const [sec, mins, hour, day, mon, year] = getBits(dateTime, 5, 6, 5, 5, 4, 7);
+    const decodedDateTime = new Date((year ?? 0) + 1980, (mon ?? 1) - 1, day, hour, mins, sec);
+    return decodedDateTime;
   }
 
   private checkInitialized() {

@@ -60,7 +60,7 @@ export interface ZipEntryInfo {
   fileSize: number;
 
   /** The date and time encoded in the ZIP entry. */
-  date_time: Date;
+  dateTime: Date;
 
   /** Determines if the entry is a directory. */
   isDir: () => boolean;
