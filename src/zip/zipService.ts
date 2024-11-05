@@ -1,14 +1,14 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
 import * as pako from "pako";
-import type { ZipEntryInfo, ZipService } from "../interfaces";
+import type { ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
 
 const MAX_EOCD_SIZE = 65536;
 
 export abstract class AbstractZipService implements ZipService {
   protected initialized = false;
 
-  protected _zipContents?: ZipEntryInfo[];
+  protected _zipContents?: ZipEntry[];
 
   public async open(): Promise<void> {
     if (this.initialized) {
@@ -30,7 +30,7 @@ export abstract class AbstractZipService implements ZipService {
   /**
    * The list of files in the ZIP archive.
    */
-  public get zipContents(): ZipEntryInfo[] {
+  public get zipContents(): ZipEntry[] {
     this.checkInitialized();
     if (!this._zipContents) {
       throw new Error("ZIP contents not loaded.");
@@ -38,7 +38,7 @@ export abstract class AbstractZipService implements ZipService {
     return this._zipContents;
   }
 
-  protected async listFiles(): Promise<ZipEntryInfo[]> {
+  protected async listFiles(): Promise<ZipEntry[]> {
     if (this._zipContents) {
       return this._zipContents;
     }
@@ -62,7 +62,7 @@ export abstract class AbstractZipService implements ZipService {
         const compressSize = dataView.getUint32(offset + 20, true);
         const uncompressSize = dataView.getUint32(offset + 24, true);
 
-        const fileInfo = this.createZipEntryInfo(
+        const fileInfo = this.createZipEntry(
           fileName,
           dataView.getUint32(offset + 12, true),
           dataView.getUint32(offset + 42, true),
@@ -87,10 +87,8 @@ export abstract class AbstractZipService implements ZipService {
    * @param file - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
    */
-  public async extractFile(file: ZipEntryInfo): Promise<Uint8Array> {
+  public async extractFile(file: ZipFileEntry): Promise<Uint8Array> {
     try {
-      if (file.isDir()) throw new Error("Cannot extract a directory from a ZIP file.");
-
       const fileDataOffset = await this.calculateFileDataOffset(file);
       const fileData = await this.getRange(fileDataOffset, file.compressSize);
 
@@ -106,7 +104,7 @@ export abstract class AbstractZipService implements ZipService {
         throw new Error(`Unsupported compression method: ${file.compressType}`);
       }
     } catch (error) {
-      console.error(`Error opening ZIP file entry: ${file.filename}`, error);
+      console.error(`Error opening ZIP file entry: ${file.path}`, error);
       throw error;
     }
   }
@@ -168,7 +166,7 @@ export abstract class AbstractZipService implements ZipService {
    * @param file - The file information object.
    * @returns A promise that resolves with the offset of the file data.
    */
-  private async calculateFileDataOffset(file: ZipEntryInfo): Promise<number> {
+  private async calculateFileDataOffset(file: ZipEntry): Promise<number> {
     const localHeaderData = await this.getRange(file.headerOffset, 30);
     const dataView = new DataView(localHeaderData.buffer);
     const fileNameLength = dataView.getUint16(26, true);
@@ -180,25 +178,25 @@ export abstract class AbstractZipService implements ZipService {
   /**
    * Creates an object containing information about a ZIP file entry.
    */
-  private createZipEntryInfo(
+  private createZipEntry(
     filename: string,
     dateTime: number,
     headerOffset: number,
     compressType: number,
     compressSize: number,
     fileSize: number,
-  ): ZipEntryInfo {
+  ): ZipEntry {
     const decodedDateTime = this.decodeDateTime(dateTime);
 
     return {
-      filename,
+      path: filename,
       headerOffset,
       compressType,
       compressSize,
       fileSize,
       dateTime: decodedDateTime,
-      isDir: () => filename.endsWith("/"),
-      isCompressed: () => compressSize !== fileSize,
+      type: filename.endsWith("/") ? "Directory" : "File",
+      isCompressed: compressSize !== fileSize,
     };
   }
 

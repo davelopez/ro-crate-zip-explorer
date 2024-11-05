@@ -1,5 +1,5 @@
 import { ROCrate } from "ro-crate";
-import type { ROCrateZip, ZipEntryInfo, ZipService } from "./interfaces.js";
+import type { ROCrateZip, ZipEntry, ZipFileEntry, ZipService } from "./interfaces.js";
 import { LocalZipService, RemoteZipService } from "./zip";
 export type { ROCrateZip };
 
@@ -21,27 +21,31 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 export class ROCrateZipExplorer {
   private zipService: ZipService;
 
-  constructor(source: File | string) {
+  public constructor(source: File | string) {
     this.zipService = zipServiceFactory(source);
   }
 
-  async open(): Promise<ROCrateZip> {
+  public async open(): Promise<ROCrateZip> {
     await this.zipService.open();
-    const files = this.zipService.zipContents;
-    const crateEntry = this.findCrateEntry(files);
+    const zipEntries = this.zipService.zipContents;
+    const crateEntry = this.findCrateEntry(zipEntries);
     const crate = await this.extractROCrateMetadata(crateEntry);
-    return { crate, files };
+    return { crate, zipEntries };
   }
 
-  private findCrateEntry(files: ZipEntryInfo[]): ZipEntryInfo {
-    const roCrateFileEntry = files.find((file) => file.filename === ROCRATE_METADATA_FILENAME);
+  public async getFileContents(fileEntry: ZipFileEntry) {
+    await this.zipService.extractFile(fileEntry);
+  }
+
+  private findCrateEntry(files: ZipEntry[]): ZipEntry {
+    const roCrateFileEntry = files.find((file) => file.path === ROCRATE_METADATA_FILENAME);
     if (!roCrateFileEntry) {
       throw new Error("No RO-Crate metadata file found in the ZIP archive");
     }
     return roCrateFileEntry;
   }
 
-  private async extractROCrateMetadata(crateEntry: ZipEntryInfo): Promise<ROCrate> {
+  private async extractROCrateMetadata(crateEntry: ZipEntry): Promise<ROCrate> {
     const crateData = await this.zipService.extractFile(crateEntry);
     const crateJson = new TextDecoder().decode(crateData);
     const json = JSON.parse(crateJson) as Record<string, unknown>;

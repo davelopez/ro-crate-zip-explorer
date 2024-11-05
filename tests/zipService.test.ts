@@ -35,7 +35,7 @@ const testZipService = (createZipService: () => ZipService) => {
     it("should decompress and return the content of the file in the remote Zip archive", async () => {
       const files = zipService.zipContents;
       expect(files.length).toBeGreaterThan(0);
-      const remoteMetadataFile = files.find((file) => file.filename === "ro-crate-metadata.json");
+      const remoteMetadataFile = files.find((file) => file.path === "ro-crate-metadata.json");
 
       if (!remoteMetadataFile) {
         throw new Error("No RO-Crate metadata file found in the ZIP archive");
