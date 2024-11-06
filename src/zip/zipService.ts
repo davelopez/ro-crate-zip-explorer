@@ -1,7 +1,7 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
 import * as pako from "pako";
-import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipService } from "../interfaces";
+import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
 
 const MAX_EOCD_SIZE = 65536;
 
@@ -36,6 +36,11 @@ export abstract class AbstractZipService implements ZipService {
       throw new Error("ZIP contents not loaded.");
     }
     return this._zipContents;
+  }
+
+  public findFileByName(fileName: string): ZipFileEntry | undefined {
+    this.checkInitialized();
+    return this._zipContents?.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry;
   }
 
   protected async listFiles(): Promise<AnyZipEntry[]> {
