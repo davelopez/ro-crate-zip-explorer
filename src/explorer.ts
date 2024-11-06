@@ -1,5 +1,5 @@
 import { ROCrate } from "ro-crate";
-import type { ROCrateZip, ZipEntry, ZipFileEntry, ZipService } from "./interfaces.js";
+import type { AnyZipEntry, ROCrateZip, ZipFileEntry, ZipService } from "./interfaces.js";
 import { LocalZipService, RemoteZipService } from "./zip";
 export type { ROCrateZip };
 
@@ -37,15 +37,17 @@ export class ROCrateZipExplorer {
     await this.zipService.extractFile(fileEntry);
   }
 
-  private findCrateEntry(files: ZipEntry[]): ZipEntry {
-    const roCrateFileEntry = files.find((file) => file.path === ROCRATE_METADATA_FILENAME);
+  private findCrateEntry(files: AnyZipEntry[]): ZipFileEntry {
+    const roCrateFileEntry = files.find(
+      (file) => file.type === "File" && file.path.endsWith(ROCRATE_METADATA_FILENAME),
+    );
     if (!roCrateFileEntry) {
       throw new Error("No RO-Crate metadata file found in the ZIP archive");
     }
-    return roCrateFileEntry;
+    return roCrateFileEntry as ZipFileEntry;
   }
 
-  private async extractROCrateMetadata(crateEntry: ZipEntry): Promise<ROCrate> {
+  private async extractROCrateMetadata(crateEntry: ZipFileEntry): Promise<ROCrate> {
     const crateData = await this.zipService.extractFile(crateEntry);
     const crateJson = new TextDecoder().decode(crateData);
     const json = JSON.parse(crateJson) as Record<string, unknown>;

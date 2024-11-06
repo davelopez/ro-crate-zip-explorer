@@ -1,14 +1,14 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
 import * as pako from "pako";
-import type { ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
+import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipService } from "../interfaces";
 
 const MAX_EOCD_SIZE = 65536;
 
 export abstract class AbstractZipService implements ZipService {
   protected initialized = false;
 
-  protected _zipContents?: ZipEntry[];
+  protected _zipContents?: AnyZipEntry[];
 
   public async open(): Promise<void> {
     if (this.initialized) {
@@ -30,7 +30,7 @@ export abstract class AbstractZipService implements ZipService {
   /**
    * The list of files in the ZIP archive.
    */
-  public get zipContents(): ZipEntry[] {
+  public get zipContents(): AnyZipEntry[] {
     this.checkInitialized();
     if (!this._zipContents) {
       throw new Error("ZIP contents not loaded.");
@@ -38,7 +38,7 @@ export abstract class AbstractZipService implements ZipService {
     return this._zipContents;
   }
 
-  protected async listFiles(): Promise<ZipEntry[]> {
+  protected async listFiles(): Promise<AnyZipEntry[]> {
     if (this._zipContents) {
       return this._zipContents;
     }
@@ -87,8 +87,12 @@ export abstract class AbstractZipService implements ZipService {
    * @param file - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
    */
-  public async extractFile(file: ZipFileEntry): Promise<Uint8Array> {
+  public async extractFile(file: ZipEntry): Promise<Uint8Array> {
     try {
+      if (file.type === "Directory") {
+        throw new Error("Cannot extract a directory.");
+      }
+
       const fileDataOffset = await this.calculateFileDataOffset(file);
       const fileData = await this.getRange(fileDataOffset, file.compressSize);
 
@@ -185,10 +189,10 @@ export abstract class AbstractZipService implements ZipService {
     compressType: number,
     compressSize: number,
     fileSize: number,
-  ): ZipEntry {
+  ): AnyZipEntry {
     const decodedDateTime = this.decodeDateTime(dateTime);
 
-    return {
+    const entry: ZipEntry = {
       path: filename,
       headerOffset,
       compressType,
@@ -198,6 +202,12 @@ export abstract class AbstractZipService implements ZipService {
       type: filename.endsWith("/") ? "Directory" : "File",
       isCompressed: compressSize !== fileSize,
     };
+
+    if (entry.type === "Directory") {
+      return entry as ZipDirectoryEntry;
+    } else {
+      return { ...entry, data: () => this.extractFile(entry) };
+    }
   }
 
   private decodeDateTime(dateTime: number) {

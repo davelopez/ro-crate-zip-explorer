@@ -5,8 +5,19 @@ import type { ROCrate } from "ro-crate";
  */
 export interface ROCrateZip {
   readonly crate: ROCrate;
-  readonly zipEntries: ZipEntry[];
+  readonly zipEntries: AnyZipEntry[];
 }
+
+export interface ZipFileEntry extends ZipEntry {
+  readonly type: "File";
+  data(): Promise<Uint8Array>;
+}
+
+export interface ZipDirectoryEntry extends ZipEntry {
+  readonly type: "Directory";
+}
+
+export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
 
 /**
  * Represents a service for working with ZIP archives.
@@ -23,7 +34,7 @@ export interface ZipService {
    * The list of files in the ZIP archive.
    * @throws Throws an error if the service is not initialized.
    */
-  readonly zipContents: ZipEntry[];
+  readonly zipContents: AnyZipEntry[];
 
   /**
    * The total size of the ZIP archive in bytes.
@@ -37,7 +48,7 @@ export interface ZipService {
    * @returns A promise that resolves with the file content as a Uint8Array.
    * @throws Throws an error if the service is not initialized or if the file cannot be extracted.
    */
-  extractFile(file: ZipEntry): Promise<Uint8Array>;
+  extractFile(file: AnyZipEntry): Promise<Uint8Array>;
 }
 
 type EntryType = "File" | "Directory";
@@ -70,12 +81,4 @@ export interface ZipEntry {
 
   /** Determines if the entry is compressed. */
   readonly isCompressed: boolean;
-}
-
-export interface ZipFileEntry extends ZipEntry {
-  readonly type: "File";
-}
-
-export interface ZipDirectoryEntry extends ZipEntry {
-  readonly type: "Directory";
 }
