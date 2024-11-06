@@ -1,2 +1,2 @@
 export { ROCrateZipExplorer, type ROCrateZip } from "./explorer.js";
-export type { ZipDirectoryEntry, AnyZipEntry, ZipFileEntry } from "./interfaces.js";
+export type { AnyZipEntry, ZipDirectoryEntry, ZipFileEntry } from "./interfaces.js";
