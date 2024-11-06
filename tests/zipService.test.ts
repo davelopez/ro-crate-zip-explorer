@@ -35,7 +35,7 @@ const testZipService = (createZipService: () => ZipService) => {
     it("should decompress and return the content of the file in the remote Zip archive", async () => {
       const files = zipService.zipContents;
       expect(files.length).toBeGreaterThan(0);
-      const remoteMetadataFile = files.find((file) => file.path === "ro-crate-metadata.json");
+      const remoteMetadataFile = zipService.findFileByName("ro-crate-metadata.json");
 
       if (!remoteMetadataFile) {
         throw new Error("No RO-Crate metadata file found in the ZIP archive");
@@ -45,9 +45,18 @@ const testZipService = (createZipService: () => ZipService) => {
       expect(metadataFileData).toBeDefined();
 
       const metadataFileText = new TextDecoder().decode(metadataFileData);
-
-      const json = JSON.parse(metadataFileText) as Record<string, unknown>;
-      expect(json["@context"]).toBe("https://w3id.org/ro/crate/1.1/context");
+      const metadataObject = JSON.parse(metadataFileText) as Record<string, unknown>;
+      verifyMetadataContext(metadataObject);
     });
+
+    function verifyMetadataContext(json: Record<string, unknown>) {
+      const expectedContextUrl = "https://w3id.org/ro/crate/1.1/context";
+      const context = json["@context"];
+      if (typeof context === "string") {
+        expect(context).toBe(expectedContextUrl);
+      } else if (Array.isArray(context)) {
+        expect(context[0]).toBe(expectedContextUrl);
+      }
+    }
   });
 };
