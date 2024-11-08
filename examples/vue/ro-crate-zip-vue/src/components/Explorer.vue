@@ -24,7 +24,13 @@ async function downloadFile(entry: ZipFileEntry) {
     <h3>RO-Crate Zip file contents</h3>
     <ul>
       <li v-for="file in roCrateZipFile.zipEntries" :key="file.path">
-        {{ file.path }} <a v-if="file.type === 'File'" @click="downloadFile(file as ZipFileEntry)">Download</a>
+        <span v-if="file.type == 'File'"> 📄 </span>
+        <span v-else-if="file.type == 'Directory'"> 📁 </span>
+        {{ file.path }}
+        <span v-if="file.type === 'File'">
+          <span v-if="file.type === 'File'">({{ file.fileSize }} bytes) </span>
+          <button @click="downloadFile(file)">Download</button>
+        </span>
       </li>
     </ul>
   </div>
