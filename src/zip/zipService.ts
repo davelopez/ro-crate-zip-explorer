@@ -63,15 +63,17 @@ export abstract class AbstractZipService implements ZipService {
           fileNameStartOffset + fileNameLength,
         );
         const fileName = new TextDecoder().decode(extractedFileName);
-
+        const dateTime = dataView.getUint32(offset + 12, true);
+        const headerOffset = dataView.getUint32(offset + 42, true);
+        const compressType = dataView.getUint16(offset + 10, true);
         const compressSize = dataView.getUint32(offset + 20, true);
         const uncompressSize = dataView.getUint32(offset + 24, true);
 
         const fileInfo = this.createZipEntry(
           fileName,
-          dataView.getUint32(offset + 12, true),
-          dataView.getUint32(offset + 42, true),
-          dataView.getUint16(offset + 10, true),
+          dateTime,
+          headerOffset,
+          compressType,
           compressSize,
           uncompressSize,
         );
