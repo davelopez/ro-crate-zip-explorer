@@ -17,17 +17,31 @@ interface ParsedCentralDirectoryFileHeader {
 }
 
 export abstract class AbstractZipService implements ZipService {
-  protected initialized = false;
+  protected isInitializing = false;
 
   protected _zipContents?: AnyZipEntry[];
+  private _eocdData?: Uint8Array;
 
   public async open(): Promise<void> {
-    if (this.initialized) {
+    if (this.isInitializing || this.isInitialized) {
       return;
     }
+    this.isInitializing = true;
     await this.doOpen();
-    this.initialized = true;
+    this._eocdData = await this.loadEOCDData();
     this._zipContents = await this.listFiles();
+    this.isInitializing = false;
+  }
+
+  protected get isInitialized(): boolean {
+    return this._zipContents !== undefined;
+  }
+
+  protected get eocdData(): Uint8Array {
+    if (this._eocdData === undefined) {
+      throw new Error("End of Central Directory (EOCD) data not loaded.");
+    }
+    return this._eocdData;
   }
 
   /** Perform internal operations to open the ZIP archive depending on the service type. */
@@ -167,12 +181,11 @@ export abstract class AbstractZipService implements ZipService {
    */
   private async getCentralDirectory(): Promise<Uint8Array> {
     try {
-      const eocdData = await this.retrieveEOCDData();
-      const eocdOffset = this.findEndOfCentralDirectoryOffset(eocdData);
+      const eocdOffset = this.findEndOfCentralDirectoryOffset();
 
       if (eocdOffset === -1) throw new Error("Cannot find the End of Central Directory (EOCD) in the ZIP file.");
 
-      const dataView = new DataView(eocdData.buffer);
+      const dataView = new DataView(this.eocdData.buffer);
       const cdirOffset = dataView.getUint32(eocdOffset + 16, true);
       const cdirSize = dataView.getUint32(eocdOffset + 12, true);
 
@@ -188,7 +201,7 @@ export abstract class AbstractZipService implements ZipService {
    * The EOCD record is located at the end of the ZIP file and has a maximum size of about 65 KB.
    * @returns A promise that resolves with the EOCD data.
    */
-  private async retrieveEOCDData(): Promise<Uint8Array> {
+  private async loadEOCDData(): Promise<Uint8Array> {
     const zipSize = this.zipSize;
     const rangeStart = Math.max(zipSize - MAX_EOCD_SIZE, 0);
     const rangeLength = Math.min(zipSize, MAX_EOCD_SIZE);
@@ -198,12 +211,11 @@ export abstract class AbstractZipService implements ZipService {
 
   /**
    * Finds the offset of the End of Central Directory (EOCD) record in the ZIP archive.
-   * @param data - The data buffer containing the EOCD record.
    * @returns The offset of the EOCD record.
    */
-  private findEndOfCentralDirectoryOffset(data: Uint8Array) {
-    const dataView = new DataView(data.buffer);
-    let offset = data.length - 22;
+  private findEndOfCentralDirectoryOffset() {
+    const dataView = new DataView(this.eocdData.buffer);
+    let offset = this.eocdData.length - 22;
     while (offset >= 0) {
       if (dataView.getUint32(offset, true) === 0x06054b50) {
         return offset;
@@ -265,7 +277,7 @@ export abstract class AbstractZipService implements ZipService {
   }
 
   private checkInitialized() {
-    if (!this.initialized) {
+    if (!this.isInitialized) {
       throw new Error("Service not initialized. Call open() first.");
     }
   }
