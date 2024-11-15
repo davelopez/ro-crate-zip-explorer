@@ -3,8 +3,20 @@
 import * as pako from "pako";
 import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
 
-const MAX_EOCD_SIZE = 65536;
+const ZipConstants = {
+  /** The maximum size of the End of Central Directory (EOCD) record in bytes. */
+  MAX_EOCD_SIZE: 65536,
 
+  /** Identifies the End of Central Directory (EOCD) record start in a ZIP archive. */
+  END_OF_CENTRAL_DIRECTORY_SIGNATURE: 0x06054b50,
+
+  /** Identifies the Central Directory File Header of an entry in a ZIP archive. */
+  CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE: 0x02014b50,
+} as const;
+
+/**
+ * Abstract class that provides common functionality for ZIP archive services.
+ */
 export abstract class AbstractZipService implements ZipService {
   protected _zipEntries?: AnyZipEntry[];
   private _eocdData?: EndOfCentralDirectoryData;
@@ -35,12 +47,12 @@ export abstract class AbstractZipService implements ZipService {
         throw new Error("File data size mismatch.");
       }
 
-      if (file.compressType === 0) {
+      if (file.compressionMethod === 0) {
         return fileData;
-      } else if (file.compressType === 8) {
+      } else if (file.compressionMethod === 8) {
         return pako.inflateRaw(fileData);
       } else {
-        throw new Error(`Unsupported compression method: ${file.compressType}`);
+        throw new Error(`Unsupported compression method: ${file.compressionMethod}`);
       }
     } catch (error) {
       console.error(`Error opening ZIP file entry: ${file.path}`, error);
@@ -64,10 +76,18 @@ export abstract class AbstractZipService implements ZipService {
    */
   protected abstract getRange(start: number, length: number): Promise<Uint8Array>;
 
+  /**
+   * Determines if the ZIP archive has been initialized and its contents are available.
+   */
   protected get isInitialized(): boolean {
     return this._zipEntries !== undefined;
   }
 
+  /**
+   * The End of Central Directory (EOCD) data of the ZIP archive.
+   * @throws An error if the EOCD data has not been loaded.
+   * @returns The EOCD data object.
+   */
   protected get eocdData(): EndOfCentralDirectoryData {
     if (this._eocdData === undefined) {
       throw new Error("End of Central Directory (EOCD) data not loaded.");
@@ -88,6 +108,11 @@ export abstract class AbstractZipService implements ZipService {
     return this._zipEntries?.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry;
   }
 
+  /**
+   * Retrieves the ZIP entries from the Central Directory.
+   * @returns A promise that resolves with an array of ZIP file entries.
+   * @throws An error if the ZIP entries cannot be parsed.
+   */
   protected async getZipEntries(): Promise<AnyZipEntry[]> {
     if (this._zipEntries) {
       return this._zipEntries;
@@ -106,7 +131,7 @@ export abstract class AbstractZipService implements ZipService {
       }
       return entries;
     } catch (error) {
-      console.error("Error listing files from ZIP:", error);
+      console.error("Error parsing entries from Central Directory:", error);
       throw error;
     }
   }
@@ -143,6 +168,11 @@ export abstract class AbstractZipService implements ZipService {
    * | 46+n+m | k     | File comment                                   |
    */
   private parseCentralDirectoryFileHeader(dataView: DataView, offset: number): ParsedCentralDirectoryFileHeader {
+    const signature = dataView.getUint32(offset, true);
+    if (signature !== ZipConstants.CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE) {
+      throw new Error("Invalid Central Directory file header signature.");
+    }
+
     const fileNameLength = dataView.getUint16(offset + 28, true);
     const extraFieldLength = dataView.getUint16(offset + 30, true);
     const fileNameStartOffset = offset + 46;
@@ -153,13 +183,13 @@ export abstract class AbstractZipService implements ZipService {
     const dateTime = dataView.getUint32(offset + 12, true);
     const crc32 = dataView.getUint32(offset + 16, true);
     const headerOffset = dataView.getUint32(offset + 42, true);
-    const compressType = dataView.getUint16(offset + 10, true);
+    const compressionMethod = dataView.getUint16(offset + 10, true);
     const compressSize = dataView.getUint32(offset + 20, true);
     const uncompressSize = dataView.getUint32(offset + 24, true);
 
     const fileCommentLength = dataView.getUint16(offset + 32, true);
     const nextOffset = 46 + fileNameLength + extraFieldLength + fileCommentLength;
-    return { fileName, dateTime, crc32, headerOffset, compressType, compressSize, uncompressSize, nextOffset };
+    return { fileName, dateTime, crc32, headerOffset, compressionMethod, compressSize, uncompressSize, nextOffset };
   }
 
   /**
@@ -184,11 +214,12 @@ export abstract class AbstractZipService implements ZipService {
    * Retrieves the End of Central Directory (EOCD) data from the ZIP archive.
    * The EOCD record is located at the end of the ZIP file and has a maximum size of about 65 KB.
    * @returns A promise that resolves with the EOCD data.
+   * @throws An error if the EOCD data cannot be loaded.
    */
   private async loadEOCDData(): Promise<EndOfCentralDirectoryData> {
     const zipSize = this.zipSize;
-    const rangeStart = Math.max(zipSize - MAX_EOCD_SIZE, 0);
-    const rangeLength = Math.min(zipSize, MAX_EOCD_SIZE);
+    const rangeStart = Math.max(zipSize - ZipConstants.MAX_EOCD_SIZE, 0);
+    const rangeLength = Math.min(zipSize, ZipConstants.MAX_EOCD_SIZE);
     const eocdBytes = await this.getRange(rangeStart, rangeLength);
     return new EndOfCentralDirectoryData(eocdBytes);
   }
@@ -214,7 +245,7 @@ export abstract class AbstractZipService implements ZipService {
     const entry: ZipEntry = {
       path: centralDirectoryFileHeader.fileName,
       headerOffset: centralDirectoryFileHeader.headerOffset,
-      compressType: centralDirectoryFileHeader.compressType,
+      compressionMethod: centralDirectoryFileHeader.compressionMethod,
       compressSize: centralDirectoryFileHeader.compressSize,
       fileSize: centralDirectoryFileHeader.uncompressSize,
       dateTime: this.decodeDateTime(centralDirectoryFileHeader.dateTime),
@@ -229,7 +260,7 @@ export abstract class AbstractZipService implements ZipService {
     }
   }
 
-  private decodeDateTime(dateTime: number) {
+  private decodeDateTime(dateTime: number): Date {
     const getBits = (val: number, ...args: number[]) =>
       args.map((n) => {
         const bit = val & (2 ** n - 1);
@@ -242,13 +273,21 @@ export abstract class AbstractZipService implements ZipService {
     return decodedDateTime;
   }
 
+  /**
+   * Checks if the ZIP archive has been initialized and its contents are available.
+   * @throws An error if the service is not initialized.
+   */
   private checkInitialized() {
     if (!this.isInitialized) {
       throw new Error("Service not initialized. Call open() first.");
     }
   }
 
+  /**
+   * Cleans up internal data after the ZIP archive has been initialized.
+   */
   protected cleanupAfterInitialization() {
+    // Clear the EOCD data after initialization to free up memory.
     this._eocdData = undefined;
   }
 }
@@ -258,15 +297,41 @@ interface ParsedCentralDirectoryFileHeader {
   dateTime: number;
   crc32: number;
   headerOffset: number;
-  compressType: number;
+  compressionMethod: number;
   compressSize: number;
   uncompressSize: number;
   nextOffset: number;
 }
 
+/**
+ * Represents relevant data from the End of Central Directory (EOCD) record of a ZIP archive.
+ *
+ * The EOCD record has the following structure:
+ *
+ * | Offset | Bytes | Description                                                                   |
+ * |--------|-------|-------------------------------------------------------------------------------|
+ * | 0      | 4     | Signature (0x06054b50)                                                        |
+ * | 4      | 2     | Number of this disk                                                           |
+ * | 6      | 2     | Disk where central directory starts                                           |
+ * | 8      | 2     | Number of central directory records on this disk                              |
+ * | 10     | 2     | Total number of central directory records                                     |
+ * | 12     | 4     | Size of central directory                                                     |
+ * | 16     | 4     | Offset of start of central directory with respect to the starting disk number |
+ * | 20     | 2     | ZIP file comment length                                                       |
+ * | 22     | n     | ZIP file comment                                                              |
+ */
 class EndOfCentralDirectoryData {
+  /** The DataView object to access the raw EOCD data. */
   public readonly dataView: DataView;
+
+  /** The start offset of the End of Central Directory (EOCD) record in the ZIP archive. */
   public readonly offset: number;
+
+  /**
+   * Creates a new EndOfCentralDirectoryData object.
+   * @param data - The raw EOCD data as a Uint8Array.
+   * @throws An error if the EOCD record cannot be found.
+   */
   constructor(data: Uint8Array) {
     this.dataView = new DataView(data.buffer);
     this.offset = this.findEndOfCentralDirectoryOffset();
@@ -280,7 +345,7 @@ class EndOfCentralDirectoryData {
   private findEndOfCentralDirectoryOffset() {
     let offset = this.dataView.byteLength - 22;
     while (offset >= 0) {
-      if (this.dataView.getUint32(offset, true) === 0x06054b50) {
+      if (this.dataView.getUint32(offset, true) === ZipConstants.END_OF_CENTRAL_DIRECTORY_SIGNATURE) {
         return offset;
       }
       offset--;

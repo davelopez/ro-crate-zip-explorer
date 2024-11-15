@@ -74,7 +74,7 @@ export interface ZipEntry {
   readonly headerOffset: number;
 
   /** The compression method used for the file. */
-  readonly compressType: number;
+  readonly compressionMethod: number;
 
   /** The compressed size of the file. */
   readonly compressSize: number;
