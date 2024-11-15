@@ -5,6 +5,17 @@ import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService
 
 const MAX_EOCD_SIZE = 65536;
 
+interface ParsedCentralDirectoryFileHeader {
+  fileName: string;
+  dateTime: number;
+  crc32: number;
+  headerOffset: number;
+  compressType: number;
+  compressSize: number;
+  uncompressSize: number;
+  nextOffset: number;
+}
+
 export abstract class AbstractZipService implements ZipService {
   protected initialized = false;
 
@@ -50,43 +61,73 @@ export abstract class AbstractZipService implements ZipService {
 
     try {
       const centralDirectoryData = await this.getCentralDirectory();
-      const files = [];
-
       const dataView = new DataView(centralDirectoryData.buffer);
+      const entries = [];
       let offset = 0;
       while (offset < centralDirectoryData.length) {
-        const fileNameLength = dataView.getUint16(offset + 28, true);
-        const extraFieldLength = dataView.getUint16(offset + 30, true);
-        const fileNameStartOffset = offset + 46;
-        const extractedFileName = centralDirectoryData.subarray(
-          fileNameStartOffset,
-          fileNameStartOffset + fileNameLength,
-        );
-        const fileName = new TextDecoder().decode(extractedFileName);
-        const dateTime = dataView.getUint32(offset + 12, true);
-        const headerOffset = dataView.getUint32(offset + 42, true);
-        const compressType = dataView.getUint16(offset + 10, true);
-        const compressSize = dataView.getUint32(offset + 20, true);
-        const uncompressSize = dataView.getUint32(offset + 24, true);
+        const centralDirectoryFileHeader = this.parseCentralDirectoryFileHeader(dataView, offset);
+        const entry = this.createZipEntry(centralDirectoryFileHeader);
 
-        const fileInfo = this.createZipEntry(
-          fileName,
-          dateTime,
-          headerOffset,
-          compressType,
-          compressSize,
-          uncompressSize,
-        );
-
-        files.push(fileInfo);
-        offset += 46 + fileNameLength + extraFieldLength + dataView.getUint16(offset + 32, true);
+        entries.push(entry);
+        offset += centralDirectoryFileHeader.nextOffset;
       }
 
-      return files;
+      return entries;
     } catch (error) {
       console.error("Error listing files from ZIP:", error);
       throw error;
     }
+  }
+
+  /**
+   * Parses a single ZIP file entry from the Central Directory.
+   * @param dataView - The DataView object containing the Central Directory data.
+   * @param offset - The offset of the entry in the Central Directory.
+   * @returns An object containing relevant data from the parsed central directory file header.
+   *
+   * Each central directory file header looks like this:
+   *
+   * | Offset | Bytes | Description                                    |
+   * |--------|-------|------------------------------------------------|
+   * | 0      | 4     | Signature (0x02014b50)                         |
+   * | 4      | 2     | Version made by                                |
+   * | 6      | 2     | Minimum version needed to extract              |
+   * | 8      | 2     | Bit flag                                       |
+   * | 10     | 2     | Compression method                             |
+   * | 12     | 2     | File last modification time (MS-DOS format)    |
+   * | 14     | 2     | File last modification date (MS-DOS format)    |
+   * | 16     | 4     | CRC-32 of uncompressed data                    |
+   * | 20     | 4     | Compressed size                                |
+   * | 24     | 4     | Uncompressed size                              |
+   * | 28     | 2     | File name length (n)                           |
+   * | 30     | 2     | Extra field length (m)                         |
+   * | 32     | 2     | File comment length (k)                        |
+   * | 34     | 2     | Disk number where file starts                  |
+   * | 36     | 2     | Internal file attributes                       |
+   * | 38     | 4     | External file attributes                       |
+   * | 42     | 4     | Offset of local file header (from start of disk) |
+   * | 46     | n     | File name                                      |
+   * | 46+n   | m     | Extra field                                    |
+   * | 46+n+m | k     | File comment                                   |
+   */
+  public parseCentralDirectoryFileHeader(dataView: DataView, offset: number): ParsedCentralDirectoryFileHeader {
+    const fileNameLength = dataView.getUint16(offset + 28, true);
+    const extraFieldLength = dataView.getUint16(offset + 30, true);
+    const fileNameStartOffset = offset + 46;
+    const fileNameEndOffset = fileNameStartOffset + fileNameLength;
+    const fileNameBuffer = dataView.buffer.slice(fileNameStartOffset, fileNameEndOffset);
+
+    const fileName = new TextDecoder().decode(fileNameBuffer);
+    const dateTime = dataView.getUint32(offset + 12, true);
+    const crc32 = dataView.getUint32(offset + 16, true);
+    const headerOffset = dataView.getUint32(offset + 42, true);
+    const compressType = dataView.getUint16(offset + 10, true);
+    const compressSize = dataView.getUint32(offset + 20, true);
+    const uncompressSize = dataView.getUint32(offset + 24, true);
+
+    const fileCommentLength = dataView.getUint16(offset + 32, true);
+    const nextOffset = 46 + fileNameLength + extraFieldLength + fileCommentLength;
+    return { fileName, dateTime, crc32, headerOffset, compressType, compressSize, uncompressSize, nextOffset };
   }
 
   /**
@@ -189,25 +230,18 @@ export abstract class AbstractZipService implements ZipService {
   /**
    * Creates an object containing information about a ZIP file entry.
    */
-  private createZipEntry(
-    filename: string,
-    dateTime: number,
-    headerOffset: number,
-    compressType: number,
-    compressSize: number,
-    fileSize: number,
-  ): AnyZipEntry {
-    const decodedDateTime = this.decodeDateTime(dateTime);
+  private createZipEntry(centralDirectoryFileHeader: ParsedCentralDirectoryFileHeader): AnyZipEntry {
+    const decodedDateTime = this.decodeDateTime(centralDirectoryFileHeader.dateTime);
 
     const entry: ZipEntry = {
-      path: filename,
-      headerOffset,
-      compressType,
-      compressSize,
-      fileSize,
+      path: centralDirectoryFileHeader.fileName,
+      headerOffset: centralDirectoryFileHeader.headerOffset,
+      compressType: centralDirectoryFileHeader.compressType,
+      compressSize: centralDirectoryFileHeader.compressSize,
+      fileSize: centralDirectoryFileHeader.uncompressSize,
       dateTime: decodedDateTime,
-      type: filename.endsWith("/") ? "Directory" : "File",
-      isCompressed: compressSize !== fileSize,
+      type: centralDirectoryFileHeader.fileName.endsWith("/") ? "Directory" : "File",
+      isCompressed: centralDirectoryFileHeader.compressSize !== centralDirectoryFileHeader.uncompressSize,
     };
 
     if (entry.type === "Directory") {
