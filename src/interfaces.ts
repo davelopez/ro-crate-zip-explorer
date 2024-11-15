@@ -32,13 +32,13 @@ export interface ZipService {
 
   /**
    * The list of files in the ZIP archive.
-   * @throws Throws an error if the service is not initialized.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
   readonly zipContents: AnyZipEntry[];
 
   /**
    * The total size of the ZIP archive in bytes.
-   * @throws Throws an error if the service is not initialized.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
   readonly zipSize: number;
 
@@ -46,7 +46,7 @@ export interface ZipService {
    * Finds a file in the ZIP archive by its name.
    * @param fileName - The name of the file to find.
    * @returns The file information object or `undefined` if the file is not found.
-   * @throws Throws an error if the service is not initialized.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
   findFileByName(fileName: string): ZipFileEntry | undefined;
 
@@ -54,7 +54,8 @@ export interface ZipService {
    * Extracts a single file from a ZIP archive.
    * @param file - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
-   * @throws Throws an error if the service is not initialized or if the file cannot be extracted.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
+   * or if the file cannot be extracted.
    */
   extractFile(file: AnyZipEntry): Promise<Uint8Array>;
 }
