@@ -4,8 +4,33 @@ import type { ROCrate } from "ro-crate";
  * Represents a Zip archive containing an RO-Crate manifest.
  */
 export interface ROCrateZip {
+  /** The RO-Crate metadata object. */
   readonly crate: ROCrate;
-  readonly zipEntries: AnyZipEntry[];
+
+  /** The ZIP archive and its contents. */
+  readonly zip: ZipArchive;
+}
+
+/**
+ * Represents a ZIP archive and its contents.
+ */
+export interface ZipArchive {
+  /** The list of files and directories in the ZIP archive. */
+  readonly entries: ZipEntry[];
+
+  /** The total size of the ZIP archive in bytes. */
+  readonly size: number;
+
+  /** Determines if the ZIP archive is a ZIP64 archive. */
+  readonly isZip64: boolean;
+
+  /**
+   * Finds a file in the ZIP archive by its name.
+   * @param fileName - The name of the file to find.
+   * @returns The file information object or `undefined` if the file is not found.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
+   */
+  findFileByName(fileName: string): ZipFileEntry | undefined;
 }
 
 export interface ZipFileEntry extends ZipEntry {
@@ -25,30 +50,11 @@ export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
 export interface ZipService {
   /**
    * Opens the ZIP archive and performs any necessary initialization.
-   *
+   * @returns A promise that resolves when the ZIP archive is opened with
+   * the list of files in the archive and metadata about the archive.
    * @throws Throws an error if the ZIP archive cannot be opened.
    */
-  open(): Promise<void>;
-
-  /**
-   * The list of files in the ZIP archive.
-   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
-   */
-  readonly zipContents: AnyZipEntry[];
-
-  /**
-   * The total size of the ZIP archive in bytes.
-   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
-   */
-  readonly zipSize: number;
-
-  /**
-   * Finds a file in the ZIP archive by its name.
-   * @param fileName - The name of the file to find.
-   * @returns The file information object or `undefined` if the file is not found.
-   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
-   */
-  findFileByName(fileName: string): ZipFileEntry | undefined;
+  open(): Promise<ZipArchive>;
 
   /**
    * Extracts a single file from a ZIP archive.

@@ -13,35 +13,31 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  * Example usage:
  * ```typescript
  * const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
- * const { crate, files } = await explorer.open();
+ * const { crate, zip } = await explorer.open();
  * console.log(crate.context);
- * console.log(files);
+ * console.log(zip.size);
  * ```
  */
 export class ROCrateZipExplorer {
   private zipService: ZipService;
+  private crateZip?: ROCrateZip;
 
   public constructor(source: File | string) {
     this.zipService = zipServiceFactory(source);
   }
 
   public async open(): Promise<ROCrateZip> {
-    await this.zipService.open();
+    if (this.crateZip) {
+      return this.crateZip;
+    }
+    const zip = await this.zipService.open();
     const crate = await this.extractROCrateMetadata();
-    const zipEntries = this.zipService.zipContents;
-    return { crate, zipEntries };
+    this.crateZip = { crate, zip };
+    return this.crateZip;
   }
 
   public async getFileContents(fileEntry: ZipFileEntry) {
     await this.zipService.extractFile(fileEntry);
-  }
-
-  private findCrateEntry(): ZipFileEntry {
-    const roCrateFileEntry = this.zipService.findFileByName(ROCRATE_METADATA_FILENAME);
-    if (!roCrateFileEntry) {
-      throw new Error("No RO-Crate metadata file found in the ZIP archive");
-    }
-    return roCrateFileEntry;
   }
 
   private async extractROCrateMetadata(): Promise<ROCrate> {
@@ -51,6 +47,17 @@ export class ROCrateZipExplorer {
     const json = JSON.parse(crateJson) as Record<string, unknown>;
     const crate = new ROCrate(json, { array: false, link: true });
     return crate;
+  }
+
+  private findCrateEntry(): ZipFileEntry {
+    if (!this.crateZip) {
+      throw new Error("The ZIP archive has not been opened yet. Call the `open` method first.");
+    }
+    const roCrateFileEntry = this.crateZip.zip.findFileByName(ROCRATE_METADATA_FILENAME);
+    if (!roCrateFileEntry) {
+      throw new Error("No RO-Crate metadata file found in the ZIP archive");
+    }
+    return roCrateFileEntry;
   }
 }
 

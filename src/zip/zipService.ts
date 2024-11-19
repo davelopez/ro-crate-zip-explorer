@@ -1,7 +1,7 @@
 //Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
 
 import * as pako from "pako";
-import type { AnyZipEntry, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
+import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
 
 const ZipConstants = {
   /** The maximum size of the End of Central Directory (EOCD) record in bytes. */
@@ -18,20 +18,21 @@ const ZipConstants = {
  * Abstract class that provides common functionality for ZIP archive services.
  */
 export abstract class AbstractZipService implements ZipService {
-  protected _zipEntries?: AnyZipEntry[];
   private _eocdData?: EndOfCentralDirectoryData;
-  private isInitializing = false;
 
-  public async open(): Promise<void> {
-    if (this.isInitializing || this.isInitialized) {
-      return;
-    }
-    this.isInitializing = true;
+  public async open(): Promise<ZipArchive> {
     await this.doOpen();
     this._eocdData = await this.loadEOCDData();
+    const entries = await this.getZipEntries();
+    const zipArchive: ZipArchive = {
+      entries,
+      size: this.zipSize,
     this._zipEntries = await this.getZipEntries();
+      findFileByName: (fileName: string) =>
+        entries.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry,
+    };
     this.cleanupAfterInitialization();
-    this.isInitializing = false;
+    return zipArchive;
   }
 
   public async extractFile(file: ZipEntry): Promise<Uint8Array> {
@@ -60,7 +61,8 @@ export abstract class AbstractZipService implements ZipService {
     }
   }
 
-  public abstract get zipSize(): number;
+  /** The size of the ZIP archive in bytes. */
+  protected abstract get zipSize(): number;
 
   /** Perform internal operations to open the ZIP archive.
    * Must be implemented by subclasses.
@@ -77,13 +79,6 @@ export abstract class AbstractZipService implements ZipService {
   protected abstract getRange(start: number, length: number): Promise<Uint8Array>;
 
   /**
-   * Determines if the ZIP archive has been initialized and its contents are available.
-   */
-  protected get isInitialized(): boolean {
-    return this._zipEntries !== undefined;
-  }
-
-  /**
    * The End of Central Directory (EOCD) data of the ZIP archive.
    * @throws An error if the EOCD data has not been loaded.
    * @returns The EOCD data object.
@@ -95,29 +90,12 @@ export abstract class AbstractZipService implements ZipService {
     return this._eocdData;
   }
 
-  public get zipContents(): AnyZipEntry[] {
-    this.checkInitialized();
-    if (!this._zipEntries) {
-      throw new Error("ZIP contents not loaded.");
-    }
-    return this._zipEntries;
-  }
-
-  public findFileByName(fileName: string): ZipFileEntry | undefined {
-    this.checkInitialized();
-    return this._zipEntries?.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry;
-  }
-
   /**
    * Retrieves the ZIP entries from the Central Directory.
    * @returns A promise that resolves with an array of ZIP file entries.
    * @throws An error if the ZIP entries cannot be parsed.
    */
   protected async getZipEntries(): Promise<AnyZipEntry[]> {
-    if (this._zipEntries) {
-      return this._zipEntries;
-    }
-
     try {
       const entries = [];
       let offset = 0;
@@ -271,16 +249,6 @@ export abstract class AbstractZipService implements ZipService {
     const [sec, mins, hour, day, mon, year] = getBits(dateTime, 5, 6, 5, 5, 4, 7);
     const decodedDateTime = new Date((year ?? 0) + 1980, (mon ?? 1) - 1, day, hour, mins, sec);
     return decodedDateTime;
-  }
-
-  /**
-   * Checks if the ZIP archive has been initialized and its contents are available.
-   * @throws An error if the service is not initialized.
-   */
-  private checkInitialized() {
-    if (!this.isInitialized) {
-      throw new Error("Service not initialized. Call open() first.");
-    }
   }
 
   /**
