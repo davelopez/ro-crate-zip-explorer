@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import type { ZipService } from "../src/interfaces";
-import { LocalZipService } from "../src/zip/localZipService";
-import { RemoteZipService } from "../src/zip/remoteZipService";
+import type { ZipArchive, ZipService } from "../src/interfaces";
+import { LocalZipService, RemoteZipService } from "../src/zip";
 import { testFileProvider } from "./testUtils";
 
 describe("LocalZipService Implementation", async () => {
@@ -18,24 +17,23 @@ describe("RemoteZipService Implementation", async () => {
 
 const testZipService = (createZipService: () => ZipService) => {
   let zipService: ZipService;
+  let zipArchive: ZipArchive;
 
   beforeAll(async () => {
     zipService = createZipService();
-    await zipService.open();
+    zipArchive = await zipService.open();
   });
 
   describe("listFiles", () => {
     it("should return a list with all the files and directories contained in the remote Zip archive", () => {
-      const files = zipService.zipContents;
-      expect(files.length).toBeGreaterThan(0);
+      expect(zipArchive.entries.length).toBeGreaterThan(0);
     });
   });
 
   describe("extractFile", () => {
     it("should decompress and return the content of the file in the remote Zip archive", async () => {
-      const files = zipService.zipContents;
-      expect(files.length).toBeGreaterThan(0);
-      const remoteMetadataFile = zipService.findFileByName("ro-crate-metadata.json");
+      expect(zipArchive.entries.length).toBeGreaterThan(0);
+      const remoteMetadataFile = zipArchive.findFileByName("ro-crate-metadata.json");
 
       if (!remoteMetadataFile) {
         throw new Error("No RO-Crate metadata file found in the ZIP archive");
