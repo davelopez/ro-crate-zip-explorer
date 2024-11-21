@@ -3,17 +3,6 @@
 import * as pako from "pako";
 import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
 
-const ZipConstants = {
-  /** The maximum size of the End of Central Directory (EOCD) record in bytes. */
-  MAX_EOCD_SIZE: 65536,
-
-  /** Identifies the End of Central Directory (EOCD) record start in a ZIP archive. */
-  END_OF_CENTRAL_DIRECTORY_SIGNATURE: 0x06054b50,
-
-  /** Identifies the Central Directory File Header of an entry in a ZIP archive. */
-  CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE: 0x02014b50,
-} as const;
-
 /**
  * Abstract class that provides common functionality for ZIP archive services.
  */
@@ -27,7 +16,7 @@ export abstract class AbstractZipService implements ZipService {
     const zipArchive: ZipArchive = {
       entries,
       size: this.zipSize,
-    this._zipEntries = await this.getZipEntries();
+      isZip64: this.eocdData.isZip64,
       findFileByName: (fileName: string) =>
         entries.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry,
     };
@@ -160,14 +149,63 @@ export abstract class AbstractZipService implements ZipService {
     const fileName = new TextDecoder().decode(fileNameBuffer);
     const dateTime = dataView.getUint32(offset + 12, true);
     const crc32 = dataView.getUint32(offset + 16, true);
-    const headerOffset = dataView.getUint32(offset + 42, true);
     const compressionMethod = dataView.getUint16(offset + 10, true);
-    const compressSize = dataView.getUint32(offset + 20, true);
-    const uncompressSize = dataView.getUint32(offset + 24, true);
-
     const fileCommentLength = dataView.getUint16(offset + 32, true);
+
+    let compressedSize = dataView.getUint32(offset + 20, true);
+    let uncompressedSize = dataView.getUint32(offset + 24, true);
+    let headerOffset = dataView.getUint32(offset + 42, true);
+
+    if (headerOffset === ZipConstants.ZIP64_VALUE_STORED_IN_EXTRA_FIELD) {
+      const zip64ExtraField = parseZip64ExtraField();
+      headerOffset = Number(zip64ExtraField.headerOffset);
+      compressedSize = Number(zip64ExtraField.compressedSize);
+      uncompressedSize = Number(zip64ExtraField.uncompressedSize);
+    }
+
     const nextOffset = 46 + fileNameLength + extraFieldLength + fileCommentLength;
-    return { fileName, dateTime, crc32, headerOffset, compressionMethod, compressSize, uncompressSize, nextOffset };
+
+    return {
+      fileName,
+      dateTime,
+      crc32,
+      headerOffset,
+      compressionMethod,
+      compressedSize,
+      uncompressedSize,
+      nextOffset,
+    };
+
+    /**
+     * The ZIP64 extra field has the following structure:
+     *
+     * | Offset | Bytes | Description                                    |
+     * |--------|-------|------------------------------------------------|
+     * | 0      | 2     | ZIP64 extra field signature (0x0001)           |
+     * | 2      | 2     | Size of the ZIP64 extra field                  |
+     * | 4      | 8     | Original uncompressed size                     |
+     * | 12     | 8     | Compressed size                                |
+     * | 20     | 8     | Offset of local header record                  |
+     * | 28     | 4     | Disk number start                              |
+     */
+    function parseZip64ExtraField(): Zip64ExtraField {
+      const extraFieldStart = fileNameEndOffset;
+      const extraFieldEnd = extraFieldStart + extraFieldLength;
+      const extraFieldData = dataView.buffer.slice(extraFieldStart, extraFieldEnd);
+      const extraFieldDataView = new DataView(extraFieldData);
+      const signature = extraFieldDataView.getUint16(0, true);
+      if (signature !== ZipConstants.ZIP64_EXTRA_FIELD_SIGNATURE) {
+        throw new Error("Invalid ZIP64 extra field signature.");
+      }
+      const uncompressedSize = extraFieldDataView.getBigUint64(4, true);
+      const compressedSize = extraFieldDataView.getBigUint64(12, true);
+      const headerOffset = extraFieldDataView.getBigUint64(20, true);
+      return {
+        uncompressedSize,
+        compressedSize,
+        headerOffset,
+      };
+    }
   }
 
   /**
@@ -199,7 +237,8 @@ export abstract class AbstractZipService implements ZipService {
     const rangeStart = Math.max(zipSize - ZipConstants.MAX_EOCD_SIZE, 0);
     const rangeLength = Math.min(zipSize, ZipConstants.MAX_EOCD_SIZE);
     const eocdBytes = await this.getRange(rangeStart, rangeLength);
-    return new EndOfCentralDirectoryData(eocdBytes);
+    const eocdDataView = new DataView(eocdBytes.buffer);
+    return new EndOfCentralDirectoryData(eocdDataView);
   }
 
   /**
@@ -224,11 +263,11 @@ export abstract class AbstractZipService implements ZipService {
       path: centralDirectoryFileHeader.fileName,
       headerOffset: centralDirectoryFileHeader.headerOffset,
       compressionMethod: centralDirectoryFileHeader.compressionMethod,
-      compressSize: centralDirectoryFileHeader.compressSize,
-      fileSize: centralDirectoryFileHeader.uncompressSize,
+      compressSize: centralDirectoryFileHeader.compressedSize,
+      fileSize: centralDirectoryFileHeader.uncompressedSize,
       dateTime: this.decodeDateTime(centralDirectoryFileHeader.dateTime),
       type: centralDirectoryFileHeader.fileName.endsWith("/") ? "Directory" : "File",
-      isCompressed: centralDirectoryFileHeader.compressSize !== centralDirectoryFileHeader.uncompressSize,
+      isCompressed: centralDirectoryFileHeader.compressedSize !== centralDirectoryFileHeader.uncompressedSize,
     };
 
     if (entry.type === "Directory") {
@@ -260,17 +299,6 @@ export abstract class AbstractZipService implements ZipService {
   }
 }
 
-interface ParsedCentralDirectoryFileHeader {
-  fileName: string;
-  dateTime: number;
-  crc32: number;
-  headerOffset: number;
-  compressionMethod: number;
-  compressSize: number;
-  uncompressSize: number;
-  nextOffset: number;
-}
-
 /**
  * Represents relevant data from the End of Central Directory (EOCD) record of a ZIP archive.
  *
@@ -295,14 +323,19 @@ class EndOfCentralDirectoryData {
   /** The start offset of the End of Central Directory (EOCD) record in the ZIP archive. */
   public readonly offset: number;
 
+  /** Indicates if the ZIP archive is a ZIP64 archive. */
+  public readonly isZip64: boolean;
+
   /**
    * Creates a new EndOfCentralDirectoryData object.
-   * @param data - The raw EOCD data as a Uint8Array.
+   * @param dataView - The raw EOCD data as DataView.
    * @throws An error if the EOCD record cannot be found.
    */
-  constructor(data: Uint8Array) {
-    this.dataView = new DataView(data.buffer);
+  constructor(dataView: DataView) {
+    this.dataView = dataView;
     this.offset = this.findEndOfCentralDirectoryOffset();
+    const zip64Locator = this.readZip64Locator();
+    this.isZip64 = zip64Locator != undefined;
   }
 
   /**
@@ -320,4 +353,71 @@ class EndOfCentralDirectoryData {
     }
     throw new Error("Cannot find the End of Central Directory (EOCD). This is not a valid ZIP file.");
   }
+
+  /**
+   * Reads the ZIP64 End of Central Directory Locator record from the ZIP archive.
+   * @returns The ZIP64 End of Central Directory Locator record if found, otherwise undefined.
+   */
+  private readZip64Locator(): Zip64EOCDLocator | undefined {
+    const zip64EOCDLocatorOffset = this.offset - 20;
+
+    if (zip64EOCDLocatorOffset < 0) return undefined;
+
+    const value = this.dataView.getUint32(zip64EOCDLocatorOffset, true);
+    const locatorFound = value === ZipConstants.ZIP64_EOCD_LOCATOR_SIGNATURE;
+    if (locatorFound) {
+      const diskNumber = this.dataView.getUint32(zip64EOCDLocatorOffset + 4, true);
+      const eocdStartOffset = this.dataView.getBigUint64(zip64EOCDLocatorOffset + 8, true);
+      const totalNumberOfDisks = this.dataView.getUint32(zip64EOCDLocatorOffset + 16, true);
+      const locatorRecord: Zip64EOCDLocator = {
+        diskNumber,
+        eocdStartOffset,
+        totalNumberOfDisks,
+      };
+      return locatorRecord;
+    }
+  }
 }
+
+interface ParsedCentralDirectoryFileHeader {
+  fileName: string;
+  dateTime: number;
+  crc32: number;
+  headerOffset: number;
+  compressionMethod: number;
+  compressedSize: number;
+  uncompressedSize: number;
+  nextOffset: number;
+}
+
+interface Zip64EOCDLocator {
+  readonly diskNumber: number;
+  readonly eocdStartOffset: bigint;
+  readonly totalNumberOfDisks: number;
+}
+
+interface Zip64ExtraField {
+  readonly uncompressedSize: bigint;
+  readonly compressedSize: bigint;
+  readonly headerOffset: bigint;
+}
+
+const ZipConstants = {
+  /** The maximum size of the End of Central Directory (EOCD) record in bytes. */
+  MAX_EOCD_SIZE: 65536,
+
+  /** Identifies the End of Central Directory (EOCD) record start in a ZIP archive. */
+  END_OF_CENTRAL_DIRECTORY_SIGNATURE: 0x06054b50,
+
+  /** Identifies the Central Directory File Header of an entry in a ZIP archive. */
+  CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE: 0x02014b50,
+
+  /** Identifies the ZIP64 End of Central Directory Locator record. */
+  ZIP64_EOCD_LOCATOR_SIGNATURE: 0x07064b50,
+
+  /** Identifies a ZIP64 extra field record in a Local File Header. */
+  ZIP64_EXTRA_FIELD_SIGNATURE: 0x0001,
+
+  /** Value used to indicate that the ZIP64 real value is stored in the Extra Field. */
+  ZIP64_VALUE_STORED_IN_EXTRA_FIELD: 0xffffffff,
+} as const;
