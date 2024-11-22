@@ -4,7 +4,7 @@ import util from "util";
 
 const readFile = util.promisify(fs.readFile);
 
-type TestFileNames = "simple-invocation.rocrate.zip";
+type TestFileNames = "simple-invocation.rocrate.zip" | "zip64-test.zip";
 
 interface TestFileProvider {
   /**
