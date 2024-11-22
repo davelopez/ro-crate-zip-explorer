@@ -15,6 +15,34 @@ describe("RemoteZipService Implementation", async () => {
   testZipService(() => new RemoteZipService(url));
 });
 
+describe("ZIP64 Support", () => {
+  describe("zipArchive.isZip64", () => {
+    it("should return false given a regular zip", async () => {
+      const file = await testFileProvider.local("simple-invocation.rocrate.zip");
+
+      const service = new LocalZipService(file);
+      const zipArchive = await service.open();
+      expect(zipArchive.isZip64).toBe(false);
+    });
+
+    it("should return true given a ZIP64 file", async () => {
+      const file = await testFileProvider.local("zip64-test.zip");
+
+      const service = new LocalZipService(file);
+      const zipArchive = await service.open();
+      expect(zipArchive.isZip64).toBe(true);
+    });
+
+    it("should return true given a ZIP64 file from a remote URL", async () => {
+      const url = await testFileProvider.remote("zip64-test.zip");
+
+      const service = new RemoteZipService(url);
+      const zipArchive = await service.open();
+      expect(zipArchive.isZip64).toBe(true);
+    });
+  });
+});
+
 const testZipService = (createZipService: () => ZipService) => {
   let zipService: ZipService;
   let zipArchive: ZipArchive;
