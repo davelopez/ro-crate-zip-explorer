@@ -1,4 +1,10 @@
-//Based on https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
+/**
+ * Initially inspired by https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/services/zipService.js
+ * Other sources:
+ * - https://pkwaredownloads.blob.core.windows.net/pkware-general/Documentation/APPNOTE-6.3.9.TXT
+ * - https://en.wikipedia.org/wiki/ZIP_(file_format)
+ * - https://users.cs.jmu.edu/buchhofp/forensics/formats/pkzip.html
+ */
 
 import * as pako from "pako";
 import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
