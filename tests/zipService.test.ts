@@ -6,12 +6,24 @@ describe("LocalZipService Implementation", async () => {
   const testFile = await testFileProvider.local("simple-invocation.rocrate.zip");
 
   testZipService(testFile);
+
+  describe("ZIP64 support", async () => {
+    const testFile = await testFileProvider.local("zip64-test.zip");
+
+    testZipService(testFile);
+  });
 });
 
 describe("RemoteZipService Implementation", async () => {
   const testFile = await testFileProvider.remote("simple-invocation.rocrate.zip");
 
   testZipService(testFile);
+
+  describe("ZIP64 support", async () => {
+    const testFile = await testFileProvider.remote("zip64-test.zip");
+
+    testZipService(testFile);
+  });
 });
 
 const testZipService = (zipTestFile: TestZipFile) => {
@@ -60,6 +72,10 @@ const testZipService = (zipTestFile: TestZipFile) => {
 
     it("should return the expected value for isZip64", () => {
       expect(zipArchive.isZip64).toBe(expectations.isZip64);
+    });
+
+    it("should return the expected value for size", () => {
+      expect(zipArchive.size).toBe(expectations.zipSize);
     });
   });
 };
