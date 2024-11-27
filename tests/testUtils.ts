@@ -45,6 +45,7 @@ async function getTestZipFile(testFileName: TestFileNames): Promise<TestZipFile>
   const zipContents = await readFile(path.resolve(__dirname, "..", "tests", "test-data", testFileName));
   const file = new File([zipContents], testFileName);
   return {
+    source: file,
     zipService: new LocalZipService(file),
     expectations: TestFileExpectations[testFileName],
   };
@@ -53,6 +54,7 @@ async function getTestZipFile(testFileName: TestFileNames): Promise<TestZipFile>
 async function getTestZipUrl(testFileName: TestFileNames): Promise<TestZipFile> {
   const remoteZipUrl = `https://github.com/davelopez/ro-crate-zip-explorer/raw/main/tests/test-data/${testFileName}`;
   return Promise.resolve({
+    source: remoteZipUrl,
     zipService: new RemoteZipService(remoteZipUrl),
     expectations: TestFileExpectations[testFileName],
   });
@@ -82,6 +84,9 @@ export interface TestZipExpectations {
  * A test ZIP service and its expected results.
  */
 export interface TestZipFile {
+  /** The ZIP archive source, either a local file or a remote URL. */
+  source: File | string;
+
   /** The ZIP service to test. */
   zipService: ZipService;
 
