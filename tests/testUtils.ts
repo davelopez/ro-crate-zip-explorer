@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import util from "util";
+import { expect } from "vitest";
 import type { ZipService } from "../src/interfaces";
 import { LocalZipService, RemoteZipService } from "../src/zip";
 
@@ -92,4 +93,16 @@ export interface TestZipFile {
 
   /** The expected results of testing the ZIP service. */
   expectations: TestZipExpectations;
+}
+
+export function verifyCrateMetadataContext(
+  crate: Record<string, unknown>,
+  expectedContextUrl = "https://w3id.org/ro/crate/1.1/context",
+) {
+  const context = crate["@context"];
+  if (typeof context === "string") {
+    expect(context).toBe(expectedContextUrl);
+  } else if (Array.isArray(context)) {
+    expect(context[0]).toBe(expectedContextUrl);
+  }
 }

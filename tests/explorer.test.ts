@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { ROCrateZipExplorer, type ROCrateZip } from "../src";
-import { testFileProvider, type TestZipFile } from "./testUtils";
+import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("ROCrateZipExplorer", () => {
   describe("Explore local ZIP file", async () => {
@@ -30,6 +30,7 @@ const testExplorer = (zipTestFile: TestZipFile) => {
       expect(rocrateZip).toBeDefined();
       expect(rocrateZip.zip).toBeDefined();
       expect(rocrateZip.crate).toBeDefined();
+      verifyCrateMetadataContext(rocrateZip.crate as Record<string, unknown>);
     });
   });
 
@@ -40,6 +41,7 @@ const testExplorer = (zipTestFile: TestZipFile) => {
       if (file) {
         const fileContents = await explorer.getFileContents(file);
         expect(fileContents).toBeDefined();
+        expect(fileContents.byteLength).toBe(10253);
       }
     });
   });

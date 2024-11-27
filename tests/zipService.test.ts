@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { ZipArchive } from "../src/interfaces";
-import { testFileProvider, type TestZipFile } from "./testUtils";
+import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("LocalZipService Implementation", async () => {
   const testFile = await testFileProvider.local("simple-invocation.rocrate.zip");
@@ -56,18 +56,8 @@ const testZipService = (zipTestFile: TestZipFile) => {
 
         const metadataFileText = new TextDecoder().decode(metadataFileData);
         const metadataObject = JSON.parse(metadataFileText) as Record<string, unknown>;
-        verifyMetadataContext(metadataObject);
+        verifyCrateMetadataContext(metadataObject);
       });
-
-      function verifyMetadataContext(json: Record<string, unknown>) {
-        const expectedContextUrl = "https://w3id.org/ro/crate/1.1/context";
-        const context = json["@context"];
-        if (typeof context === "string") {
-          expect(context).toBe(expectedContextUrl);
-        } else if (Array.isArray(context)) {
-          expect(context[0]).toBe(expectedContextUrl);
-        }
-      }
     });
 
     it("should return the expected value for isZip64", () => {
