@@ -5,7 +5,7 @@ declare module "ro-crate" {
    * Class for building, navigating, testing and rendering ROCrates
    */
   declare class ROCrate {
-    constructor(json: unknown, config?: ROCrateConfig);
+    constructor(json: Record<string, unknown>, config?: ROCrateConfig);
 
     /**
      * The context part of the crate. An alias for '@context'.
