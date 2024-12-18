@@ -3,7 +3,7 @@ import type { ZipArchive } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("LocalZipService Implementation", async () => {
-  const testFile = await testFileProvider.local("simple-invocation.rocrate.zip");
+  const testFile = await testFileProvider.local("rocrate-test.zip");
 
   testZipService(testFile);
 
@@ -15,7 +15,7 @@ describe("LocalZipService Implementation", async () => {
 });
 
 describe("RemoteZipService Implementation", async () => {
-  const testFile = await testFileProvider.remote("simple-invocation.rocrate.zip");
+  const testFile = await testFileProvider.remote("rocrate-test.zip");
 
   testZipService(testFile);
 

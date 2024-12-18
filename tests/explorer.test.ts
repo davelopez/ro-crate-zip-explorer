@@ -4,13 +4,13 @@ import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "
 
 describe("ROCrateZipExplorer", () => {
   describe("Explore local ZIP file", async () => {
-    const localTestFile = await testFileProvider.local("simple-invocation.rocrate.zip");
+    const localTestFile = await testFileProvider.local("rocrate-test.zip");
 
     testExplorer(localTestFile);
   });
 
   describe("Explore remote ZIP file", async () => {
-    const remoteTestFile = await testFileProvider.remote("simple-invocation.rocrate.zip");
+    const remoteTestFile = await testFileProvider.remote("rocrate-test.zip");
 
     testExplorer(remoteTestFile);
   });

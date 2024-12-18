@@ -4,7 +4,7 @@ import { ROCrateZipExplorer, type ROCrateZip } from "ro-crate-zip-explorer";
 import Explorer from "./Explorer.vue";
 
 const url = ref<string>(
-  "https://raw.githubusercontent.com/davelopez/ro-crate-zip-explorer/refs/heads/main/tests/test-data/simple-invocation.rocrate.zip",
+  "https://raw.githubusercontent.com/davelopez/ro-crate-zip-explorer/refs/heads/main/tests/test-data/rocrate-test.zip",
 );
 const roCrateZipFile = ref<ROCrateZip>();
 

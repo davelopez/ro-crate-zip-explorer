@@ -7,10 +7,10 @@ import { LocalZipService, RemoteZipService } from "../src/zip";
 
 const readFile = util.promisify(fs.readFile);
 
-type TestFileNames = "simple-invocation.rocrate.zip" | "zip64-test.zip";
+type TestFileNames = "rocrate-test.zip" | "zip64-test.zip";
 
 const TestFileExpectations: Record<TestFileNames, TestZipExpectations> = {
-  "simple-invocation.rocrate.zip": {
+  "rocrate-test.zip": {
     entriesCount: 19,
     zipSize: 19631,
     isZip64: false,
