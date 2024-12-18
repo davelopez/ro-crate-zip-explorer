@@ -14,6 +14,15 @@ describe("ROCrateZipExplorer", () => {
 
     testExplorer(remoteTestFile);
   });
+
+  describe("Explore non-RO-Crate ZIP file", async () => {
+    const nonROCrateTestFile = await testFileProvider.local("non-rocrate-test.zip");
+
+    it("should throw an error when opening a non-RO-Crate ZIP file", async () => {
+      const explorer = new ROCrateZipExplorer(nonROCrateTestFile.source);
+      await expect(explorer.open()).rejects.toThrow("No RO-Crate metadata file found in the ZIP archive");
+    });
+  });
 });
 
 const testExplorer = (zipTestFile: TestZipFile) => {
