@@ -22,16 +22,14 @@ export class ROCrateZipExplorer {
   private zipService: ZipService;
   private zipArchive?: ZipArchive;
   private crate?: ROCrate;
+  private _crateZip?: ROCrateZip;
 
   public constructor(source: File | string) {
     this.zipService = zipServiceFactory(source);
   }
 
   private get crateZip(): ROCrateZip | undefined {
-    if (!this.crate || !this.zipArchive) {
-      return undefined;
-    }
-    return { crate: this.crate, zip: this.zipArchive };
+    return this._crateZip;
   }
 
   public async open(): Promise<ROCrateZip> {
@@ -39,8 +37,9 @@ export class ROCrateZipExplorer {
       return this.crateZip;
     }
     this.zipArchive = await this.zipService.open();
-    this.crate = await this.extractROCrateMetadata();
+    this.crate = await this.extractROCrateMetadata(this.zipArchive);
     const crateZip = { crate: this.crate, zip: this.zipArchive };
+    this._crateZip = crateZip;
     return crateZip;
   }
 
@@ -48,8 +47,8 @@ export class ROCrateZipExplorer {
     return await this.zipService.extractFile(fileEntry);
   }
 
-  private async extractROCrateMetadata(): Promise<ROCrate> {
-    const crateEntry = this.findCrateEntry();
+  private async extractROCrateMetadata(zipArchive: ZipArchive): Promise<ROCrate> {
+    const crateEntry = this.findCrateEntry(zipArchive);
     const crateData = await this.zipService.extractFile(crateEntry);
     const crateJson = new TextDecoder().decode(crateData);
     const json = JSON.parse(crateJson) as Record<string, unknown>;
@@ -57,11 +56,8 @@ export class ROCrateZipExplorer {
     return crate;
   }
 
-  private findCrateEntry(): ZipFileEntry {
-    if (!this.zipArchive) {
-      throw new Error("The ZIP archive has not been opened yet. Call the `open` method first.");
-    }
-    const roCrateFileEntry = this.zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
+  private findCrateEntry(zipArchive: ZipArchive): ZipFileEntry {
+    const roCrateFileEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
     if (!roCrateFileEntry) {
       throw new Error("No RO-Crate metadata file found in the ZIP archive");
     }

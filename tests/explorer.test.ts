@@ -41,6 +41,11 @@ const testExplorer = (zipTestFile: TestZipFile) => {
       expect(rocrateZip.crate).toBeDefined();
       verifyCrateMetadataContext(rocrateZip.crate as Record<string, unknown>);
     });
+
+    it("should return the same ZIP archive and RO-Crate metadata when called again", async () => {
+      const secondOpen = await explorer.open();
+      expect(secondOpen).toBe(rocrateZip);
+    });
   });
 
   describe("getFileContents", () => {
