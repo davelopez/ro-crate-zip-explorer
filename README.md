@@ -66,6 +66,23 @@ if (fileEntry) {
 }
 ```
 
+## 🛠 Example Projects
+
+Explore how **RO-Crate Zip Explorer** can be used in real-world applications!
+
+### 📌 Vue.js Example
+
+A Vue.js example demonstrating how to integrate **RO-Crate Zip Explorer** into a frontend project is available in the repository:
+
+🔗 **[Vue Example: RO-Crate-Zip-Vue](examples/vue/ro-crate-zip-vue/)**
+
+This example showcases:
+
+- Opening a local or remote RO-Crate ZIP archive
+- Handling file contents from the archive
+
+Clone the repository and try it out!
+
 ## 📄 License
 
 This project is licensed under the **MIT License**.
