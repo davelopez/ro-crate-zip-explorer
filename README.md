@@ -1,29 +1,25 @@
 # RO-Crate Zip Explorer
 
-This TypeScript library provides an API for browsing and reading RO-Crate metadata files directly within zip archives. It allows web developers to integrate RO-Crate import logic into their web projects.
+**RO-Crate Zip Explorer** is a TypeScript library that provides an API for browsing and reading **RO-Crate metadata files** directly within ZIP archives. It enables web developers to integrate RO-Crate import functionality into their projects, supporting both **local and remote ZIP archives**.
 
-## Features
+## ✨ Features
 
-- Open and read ZIP archives containing RO-Crate metadata.
-- Extract and parse RO-Crate metadata files.
-- Access individual files and directories within the ZIP archive.
-- Support for both local and remote ZIP archives.
+- Open and read ZIP archives containing **RO-Crate metadata**.
+- Extract and parse **RO-Crate metadata files**.
+- Access individual **files and directories** within the ZIP archive.
+- Support for **both local and remote ZIP archives**.
 
-## Installation
+## 📦 Installation
 
-To install the library, use npm or yarn:
+Install via **npm** or **yarn**:
 
 ```sh
 npm install ro-crate-zip-explorer
-```
-
-or
-
-```sh
+# or
 yarn add ro-crate-zip-explorer
 ```
 
-## Usage
+## 🚀 Usage
 
 ### Importing the Library
 
@@ -35,10 +31,12 @@ import { ROCrateZipExplorer } from "ro-crate-zip-explorer";
 
 ```typescript
 const fileInput = document.querySelector('input[type="file"]');
+
 fileInput.addEventListener("change", async (event) => {
   const file = event.target.files[0];
   const explorer = new ROCrateZipExplorer(file);
   const { crate, zip } = await explorer.open();
+
   console.log(crate.context);
   console.log(zip.size);
 });
@@ -49,23 +47,25 @@ fileInput.addEventListener("change", async (event) => {
 ```typescript
 const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
 const { crate, zip } = await explorer.open();
+
 console.log(crate.context);
 console.log(zip.size);
 ```
 
 > [!IMPORTANT]
-> The library uses the Fetch API to explore remote ZIP archives. Make sure to handle CORS headers if the ZIP archive is hosted on a different domain.
+> This library uses the **Fetch API** to explore remote ZIP archives. Ensure proper **CORS headers** are set if the archive is hosted on a different domain.
 
 ### Extracting File Contents
 
 ```typescript
 const fileEntry = zip.findFileByName("path/to/file.txt");
+
 if (fileEntry) {
   const fileContents = await explorer.getFileContents(fileEntry);
   console.log(new TextDecoder().decode(fileContents));
 }
 ```
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License**.
