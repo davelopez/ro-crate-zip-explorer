@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { ZipArchive, ZipFileEntry } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
@@ -28,13 +28,21 @@ describe("RemoteZipService Implementation", async () => {
 
 describe("ZipService.extractFile", () => {
   it("should throw an error when extracting a directory", async () => {
-    const testFile = await testFileProvider.local("rocrate-test.zip");
-    const zipService = testFile.zipService;
-    const zipArchive = await zipService.open();
-    const directory = zipArchive.entries.find((entry) => entry.type === "Directory") as ZipFileEntry;
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {
+      // Suppress console.error output, since we expect an error to be thrown
+    });
 
-    expect(directory).toBeDefined();
-    await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
+    try {
+      const testFile = await testFileProvider.local("rocrate-test.zip");
+      const zipService = testFile.zipService;
+      const zipArchive = await zipService.open();
+      const directory = zipArchive.entries.find((entry) => entry.type === "Directory") as ZipFileEntry;
+
+      expect(directory).toBeDefined();
+      await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
 
