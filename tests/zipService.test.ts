@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import type { ZipArchive } from "../src/interfaces";
+import type { ZipArchive, ZipFileEntry } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("LocalZipService Implementation", async () => {
@@ -23,6 +23,18 @@ describe("RemoteZipService Implementation", async () => {
     const testFile = await testFileProvider.remote("zip64-test.zip");
 
     testZipService(testFile);
+  });
+});
+
+describe("ZipService.extractFile", () => {
+  it("should throw an error when extracting a directory", async () => {
+    const testFile = await testFileProvider.local("rocrate-test.zip");
+    const zipService = testFile.zipService;
+    const zipArchive = await zipService.open();
+    const directory = zipArchive.entries.find((entry) => entry.type === "Directory") as ZipFileEntry;
+
+    expect(directory).toBeDefined();
+    await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
   });
 });
 
