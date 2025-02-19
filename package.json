@@ -30,6 +30,7 @@
   "type": "module",
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.16.4",
+    "@changesets/cli": "^2.28.0",
     "@eslint/js": "^9.11.0",
     "@types/node": "^22.5.5",
     "@types/pako": "^2.0.3",
