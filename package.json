@@ -13,7 +13,9 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "format": "prettier --write .",
-    "ci": "yarn build && yarn check-format && yarn lint && yarn check-exports && yarn test"
+    "ci": "yarn build && yarn check-format && yarn lint && yarn check-exports && yarn test",
+    "prepublishOnly": "yarn run ci",
+    "local-release": "changeset version && changeset publish"
   },
   "keywords": [
     "RO-Crate",
