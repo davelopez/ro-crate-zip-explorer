@@ -74,7 +74,7 @@ Explore how **RO-Crate Zip Explorer** can be used in real-world applications!
 
 A Vue.js example demonstrating how to integrate **RO-Crate Zip Explorer** into a frontend project is available in the repository:
 
-🔗 **[Vue Example: RO-Crate-Zip-Vue](examples/vue/ro-crate-zip-vue/)**
+🔗 **[Vue Example: RO-Crate-Zip-Vue](https://github.com/davelopez/ro-crate-zip-explorer/tree/main/examples/vue/ro-crate-zip-vue#ro-crate-zip-vue)**
 
 This example showcases:
 
