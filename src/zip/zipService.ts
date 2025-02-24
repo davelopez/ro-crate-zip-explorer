@@ -7,7 +7,7 @@
  */
 
 import * as pako from "pako";
-import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces";
+import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces.js";
 
 /**
  * Abstract class that provides common functionality for ZIP archive services.

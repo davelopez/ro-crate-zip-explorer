@@ -2,8 +2,9 @@ import fs from "fs";
 import path from "path";
 import util from "util";
 import { expect } from "vitest";
-import type { ZipService } from "../src/interfaces";
-import { LocalZipService, RemoteZipService } from "../src/zip";
+import type { ZipService } from "../src/interfaces.js";
+import { LocalZipService } from "../src/zip/localZipService.js";
+import { RemoteZipService } from "../src/zip/remoteZipService.js";
 
 const readFile = util.promisify(fs.readFile);
 

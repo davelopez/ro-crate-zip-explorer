@@ -1,5 +1,5 @@
-import { ensureUrlSupportsRanges, followRedirects, getRange, validateUrl, type RangeSupport } from "../utils";
-import { AbstractZipService } from "./zipService";
+import { ensureUrlSupportsRanges, followRedirects, getRange, validateUrl, type RangeSupport } from "../utils.js";
+import { AbstractZipService } from "./zipService.js";
 
 export class RemoteZipService extends AbstractZipService {
   private url: string;

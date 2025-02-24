@@ -1,4 +1,4 @@
-import { AbstractZipService } from "./zipService";
+import { AbstractZipService } from "./zipService.js";
 
 export class LocalZipService extends AbstractZipService {
   constructor(private zipFile: File) {
