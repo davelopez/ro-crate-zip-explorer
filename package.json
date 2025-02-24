@@ -26,6 +26,7 @@
   ],
   "author": "davelopez",
   "license": "MIT",
+  "repository": "davelopez/ro-crate-zip-explorer",
   "files": [
     "dist"
   ],
