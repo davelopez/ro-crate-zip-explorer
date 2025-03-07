@@ -50,6 +50,6 @@
   "dependencies": {
     "jszip": "^3.10.1",
     "pako": "^2.1.0",
-    "ro-crate": "^3.4.1"
+    "ro-crate": "^3.4.6"
   }
 }
