@@ -5,7 +5,18 @@ import { RemoteZipService } from "./zip/remoteZipService.js";
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 
-export class ZipExplorer {
+/**
+ * A class for exploring the contents of a ZIP archive.
+ *
+ * You can either pass a File object representing a ZIP archive or a URL string pointing to a remotely hosted ZIP archive.
+ *
+ * Example usage:
+ * ```typescript
+ * const explorer = new ZipExplorer("https://example.com/archive.zip");
+ * const zip = await explorer.open();
+ * console.log(zip.size);
+ * ```
+ */
   protected readonly zipService: ZipService;
   protected zipArchive?: ZipArchive;
 
@@ -33,9 +44,14 @@ export class ZipExplorer {
  * Example usage:
  * ```typescript
  * const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
- * const { crate, zip } = await explorer.open();
- * console.log(crate.context);
+ * const zip = await explorer.open();
  * console.log(zip.size);
+ *
+ * if (explorer.hasCrate) {
+ *   console.log(explorer.crate.graphSize);
+ * } else {
+ *   console.log("No RO-Crate metadata found in the ZIP archive");
+ * }
  * ```
  */
 export class ROCrateZipExplorer extends ZipExplorer {

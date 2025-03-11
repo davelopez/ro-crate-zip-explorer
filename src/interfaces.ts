@@ -20,16 +20,35 @@ export interface ZipArchive {
   findFileByName(fileName: string): ZipFileEntry | undefined;
 }
 
+/**
+ * Represents either a file or a directory in a ZIP archive.
+ */
+export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
+
+/**
+ * Represents a file in a ZIP archive.
+ */
 export interface ZipFileEntry extends ZipEntry {
   readonly type: "File";
+
+  /**
+   * Extracts the file content from the ZIP archive.
+   * @returns A promise that resolves with the file content as a Uint8Array.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
+   * or if the file cannot be extracted.
+   *
+   * @remarks
+   * This loads the entire file into memory. Consider using this method only for small files.
+   */
   data(): Promise<Uint8Array>;
 }
 
+/**
+ * Represents a directory in a ZIP archive.
+ */
 export interface ZipDirectoryEntry extends ZipEntry {
   readonly type: "Directory";
 }
-
-export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
 
 /**
  * Represents a service for working with ZIP archives.
