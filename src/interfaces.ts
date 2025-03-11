@@ -1,16 +1,3 @@
-import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
-
-/**
- * Represents a Zip archive containing an RO-Crate manifest.
- */
-export interface ROCrateZip {
-  /** The RO-Crate metadata object. */
-  readonly crate: ROCrateReadOnlyView;
-
-  /** The ZIP archive and its contents. */
-  readonly zip: ZipArchive;
-}
-
 /**
  * Represents a ZIP archive and its contents.
  */

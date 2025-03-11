@@ -1,10 +1,29 @@
 import { ROCrate } from "ro-crate";
-import type { ROCrateZip, ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
+import type { ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
-export type { ROCrateZip };
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
+
+export class ZipExplorer {
+  protected readonly zipService: ZipService;
+  protected zipArchive?: ZipArchive;
+
+  public constructor(source: File | string) {
+    this.zipService = zipServiceFactory(source);
+  }
+
+  public async open(): Promise<ZipArchive> {
+    if (!this.zipArchive) {
+      this.zipArchive = await this.zipService.open();
+    }
+    return this.zipArchive;
+  }
+
+  public async getFileContents(fileEntry: ZipFileEntry) {
+    return await this.zipService.extractFile(fileEntry);
+  }
+}
 
 /**
  * A class for exploring the contents of a ZIP archive containing an RO-Crate manifest.
@@ -19,37 +38,33 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  * console.log(zip.size);
  * ```
  */
-export class ROCrateZipExplorer {
-  private zipService: ZipService;
-  private zipArchive?: ZipArchive;
-  private crate?: ROCrate;
-  private _crateZip?: ROCrateZip;
+export class ROCrateZipExplorer extends ZipExplorer {
+  private _crate?: ROCrate | null = undefined;
 
-  public constructor(source: File | string) {
-    this.zipService = zipServiceFactory(source);
+  public get hasCrate(): boolean {
+    this.ensureZipArchiveOpen();
+    return Boolean(this._crate);
   }
 
-  private get crateZip(): ROCrateZip | undefined {
-    return this._crateZip;
-  }
-
-  public async open(): Promise<ROCrateZip> {
-    if (this.crateZip) {
-      return this.crateZip;
+  public get crate(): ROCrate {
+    if (this._crate) {
+      return this._crate;
     }
-    this.zipArchive = await this.zipService.open();
-    this.crate = await this.extractROCrateMetadata(this.zipArchive);
-    const crateZip = { crate: this.crate, zip: this.zipArchive };
-    this._crateZip = crateZip;
-    return crateZip;
+    this.ensureZipArchiveOpen();
+    throw new Error("No RO-Crate metadata found in the ZIP archive");
   }
 
-  public async getFileContents(fileEntry: ZipFileEntry) {
-    return await this.zipService.extractFile(fileEntry);
+  public override async open(): Promise<ZipArchive> {
+    const zipArchive = await super.open();
+    this._crate = await this.extractROCrateMetadata(zipArchive);
+    return zipArchive;
   }
 
-  private async extractROCrateMetadata(zipArchive: ZipArchive): Promise<ROCrate> {
+  private async extractROCrateMetadata(zipArchive: ZipArchive): Promise<ROCrate | null> {
     const crateEntry = this.findCrateEntry(zipArchive);
+    if (!crateEntry) {
+      return null;
+    }
     const crateData = await this.zipService.extractFile(crateEntry);
     const crateJson = new TextDecoder().decode(crateData);
     const json = JSON.parse(crateJson) as Record<string, unknown>;
@@ -57,12 +72,15 @@ export class ROCrateZipExplorer {
     return crate;
   }
 
-  private findCrateEntry(zipArchive: ZipArchive): ZipFileEntry {
+  private findCrateEntry(zipArchive: ZipArchive): ZipFileEntry | undefined {
     const roCrateFileEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
-    if (!roCrateFileEntry) {
-      throw new Error("No RO-Crate metadata file found in the ZIP archive");
-    }
     return roCrateFileEntry;
+  }
+
+  private ensureZipArchiveOpen(): void {
+    if (!this.zipArchive) {
+      throw new Error("Please call open() before trying to access the RO-Crate");
+    }
   }
 }
 
