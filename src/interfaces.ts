@@ -1,4 +1,4 @@
-import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
+import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 
 /**
  * Represents an interface for a service that can open a ZIP archive,
@@ -34,7 +34,7 @@ export interface IROCrateExplorer extends IZipExplorer {
    * The RO-Crate metadata in the ZIP archive.
    * @throws Throws an error if the ZIP archive does not contain an RO-Crate manifest.
    */
-  crate: ROCrateReadOnlyView;
+  crate: ROCrateImmutableView;
 }
 
 /**

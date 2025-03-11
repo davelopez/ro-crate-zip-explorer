@@ -1,5 +1,5 @@
 declare module "ro-crate" {
-  type IROCrate = import("./ro-crate-interfaces").ROCrateReadOnlyView;
+  type ROCrateImmutableView = import("./ro-crate-interfaces").ROCrateImmutableView;
   type RawEntity = import("./ro-crate-interfaces").RawEntity;
   type Entity = import("./ro-crate-interfaces").Entity;
 
@@ -9,16 +9,12 @@ declare module "ro-crate" {
   export class ROCrate implements IROCrate {
     constructor(json: Record<string, unknown>, config?: ROCrateConfig);
 
-    // TODO: This is a read-only view of the ROCrate object limited to the scope of the current project.
-    // These type definitions should be completed and moved to a new package @types/ro-crate and
-    // contributed to DefinitelyTyped (https://github.com/DefinitelyTyped/DefinitelyTyped)
-
     context: unknown[];
     graph: Entity[];
     graphSize: number;
     metadataFileEntity: Entity;
     rootDataset: Entity;
-    rootId: string;
+    get rootId(): string;
 
     resolveContext(): Promise<void>;
     getDefinition(term: string): RawEntity | undefined;
@@ -30,4 +26,18 @@ declare module "ro-crate" {
   }
 
   export function validate(crate: ROCrate, files: unknown): Promise<ValidationResults>;
+
+  /**
+   * Interface for a ROCrate object exposing all its methods.
+   */
+  interface IROCrate extends ROCrateImmutableView {
+    // Note: The scope of the current project does not require the full type definitions of the
+    // IROCrate interface.
+
+    // TODO: These type definitions should be completed and moved to a new package @types/ro-crate and
+    // contributed to DefinitelyTyped (https://github.com/DefinitelyTyped/DefinitelyTyped) by
+    // the RO-Crate community.
+
+    set rootId(newId: string);
+  }
 }

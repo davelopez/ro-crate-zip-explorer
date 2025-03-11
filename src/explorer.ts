@@ -1,6 +1,6 @@
 import { ROCrate } from "ro-crate";
 import type { IROCrateExplorer, IZipExplorer, ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
-import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
+import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
 
@@ -64,10 +64,10 @@ export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer 
     return Boolean(this._crate);
   }
 
-  public get crate(): ROCrateReadOnlyView {
+  public get crate(): ROCrateImmutableView {
     if (this._crate) {
       // Here only an immutable view of the RO-Crate is returned
-      return this._crate as ROCrateReadOnlyView;
+      return this._crate as ROCrateImmutableView;
     }
     this.ensureZipArchiveOpen();
     throw new Error("No RO-Crate metadata found in the ZIP archive");
