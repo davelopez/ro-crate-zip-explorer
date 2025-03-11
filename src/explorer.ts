@@ -1,5 +1,6 @@
 import { ROCrate } from "ro-crate";
-import type { ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
+import type { IROCrateExplorer, IZipExplorer, ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
+import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
 
@@ -17,6 +18,7 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  * console.log(zip.size);
  * ```
  */
+export class ZipExplorer implements IZipExplorer {
   protected readonly zipService: ZipService;
   protected zipArchive?: ZipArchive;
 
@@ -54,7 +56,7 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  * }
  * ```
  */
-export class ROCrateZipExplorer extends ZipExplorer {
+export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer {
   private _crate?: ROCrate | null = undefined;
 
   public get hasCrate(): boolean {
@@ -62,9 +64,10 @@ export class ROCrateZipExplorer extends ZipExplorer {
     return Boolean(this._crate);
   }
 
-  public get crate(): ROCrate {
+  public get crate(): ROCrateReadOnlyView {
     if (this._crate) {
-      return this._crate;
+      // Here only an immutable view of the RO-Crate is returned
+      return this._crate as ROCrateReadOnlyView;
     }
     this.ensureZipArchiveOpen();
     throw new Error("No RO-Crate metadata found in the ZIP archive");

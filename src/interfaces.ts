@@ -1,3 +1,42 @@
+import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
+
+/**
+ * Represents an interface for a service that can open a ZIP archive,
+ * explore its contents, and extract files from it.
+ */
+export interface IZipExplorer {
+  /**
+   * Opens the ZIP archive and performs any necessary initialization.
+   * @returns A promise that resolves when the ZIP archive is opened.
+   * @throws Throws an error if the ZIP archive cannot be opened.
+   */
+  open(): Promise<ZipArchive>;
+
+  /**
+   * Extracts the contents of a file from the ZIP archive.
+   * @param fileEntry - The file information object.
+   * @returns A promise that resolves with the file content as a Uint8Array.
+   * @throws Throws an error if the file cannot be extracted.
+   *
+   * @remarks
+   * This loads the entire file into memory. Consider using this method only for small files.
+   */
+  getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array>;
+}
+
+export interface IROCrateExplorer extends IZipExplorer {
+  /**
+   * Determines if the ZIP archive contains an RO-Crate manifest.
+   */
+  hasCrate: boolean;
+
+  /**
+   * The RO-Crate metadata in the ZIP archive.
+   * @throws Throws an error if the ZIP archive does not contain an RO-Crate manifest.
+   */
+  crate: ROCrateReadOnlyView;
+}
+
 /**
  * Represents a ZIP archive and its contents.
  */
