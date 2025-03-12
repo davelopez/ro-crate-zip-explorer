@@ -5,7 +5,7 @@
  * It also provides methods for resolving context terms, getting entity definitions,
  * getting entities from the graph, and checking if an entity exists in the graph.
  */
-export interface ROCrateImmutableView {
+export interface ROCrateImmutableView extends ContextLookup {
   /**
    * The context part of the crate.
    * This returns the original context information.
@@ -43,20 +43,7 @@ export interface ROCrateImmutableView {
   /**
    * Generate a local flat lookup table for context terms
    */
-  resolveContext(): Promise<void>;
-
-  /**
-   * Get the context term definition. This method will also search for term defined locally in the graph.
-   * Make sure `resolveContext()` has been called prior calling this method.
-   */
-  getDefinition(term: string): RawEntity | undefined;
-
-  /**
-   * Get the context term name from it's definition id.
-   * Make sure `resolveContext()` has been called prior calling this method.
-   * @param {string|object} definition
-   */
-  getTerm(definition: string | RawEntity): string | undefined;
+  resolveContext(): Promise<ContextLookup>;
 
   /**
    * Get an entity from the graph.
@@ -84,6 +71,24 @@ export interface ROCrateImmutableView {
    * @return plain JSON object
    */
   toJSON(): Record<string, unknown>;
+}
+
+/**
+ * This interface represents a context lookup table for resolving context terms.
+ */
+interface ContextLookup {
+  /**
+   * Get the context term definition. This method will also search for term defined locally in the graph.
+   * Make sure `resolveContext()` has been called prior calling this method.
+   */
+  getDefinition(term: string): RawEntity | undefined;
+
+  /**
+   * Get the context term name from it's definition id.
+   * Make sure `resolveContext()` has been called prior calling this method.
+   * @param {string|object} definition
+   */
+  getTerm(definition: string | RawEntity): string | undefined;
 }
 
 export interface ROCrateConfig {
