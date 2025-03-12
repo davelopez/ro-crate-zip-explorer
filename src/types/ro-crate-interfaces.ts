@@ -7,19 +7,21 @@
  */
 export interface ROCrateImmutableView {
   /**
-   * The context part of the crate. An alias for '@context'.
+   * The context part of the crate.
    * This returns the original context information.
    */
-  readonly context: unknown[];
+  readonly "@context": string | string[];
 
-  /**
-   * An array of all nodes in the graph. An alias for '@graph'
-   */
+  /** An alias for '@context'. */
+  readonly context: string | string[];
+
+  /** An array of all nodes in the graph. */
+  readonly "@graph": Entity[];
+
+  /** An alias for '@graph' */
   readonly graph: Entity[];
 
-  /**
-   * The number of nodes in the graph
-   */
+  /** The number of nodes in the graph. */
   readonly graphSize: number;
 
   /**
@@ -36,7 +38,7 @@ export interface ROCrateImmutableView {
   /**
    * The root identifier of the RO Crate
    */
-  get rootId(): string;
+  readonly rootId: string;
 
   /**
    * Generate a local flat lookup table for context terms
@@ -54,7 +56,7 @@ export interface ROCrateImmutableView {
    * Make sure `resolveContext()` has been called prior calling this method.
    * @param {string|object} definition
    */
-  getTerm(definition: string | Record<string, unknown>): string | undefined;
+  getTerm(definition: string | RawEntity): string | undefined;
 
   /**
    * Get an entity from the graph.
@@ -120,11 +122,10 @@ export interface RawEntity {
 
 interface NodeRef {
   readonly "@id": string;
-  readonly "@reverse": Record<string, unknown>;
 }
 
 export interface Entity extends RawEntity, NodeRef {
-  toJSON(): RawEntity;
+  // TODO: Add more properties as needed
 }
 
 /**
