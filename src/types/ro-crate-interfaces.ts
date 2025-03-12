@@ -26,7 +26,7 @@ export interface ROCrateImmutableView {
    * The metadata file entity.
    * This is the entity that represents the metadata file of the RO Crate.
    */
-  readonly metadataFileEntity: Entity;
+  readonly metadataFileEntity: MetadataFileDescriptor;
 
   /**
    * The root dataset entity. An alias for the entity with the same id as the rootId.
@@ -177,3 +177,20 @@ interface RootDataset extends Entity {
   readonly identifier?: string | Entity;
 }
 
+/**
+ * The Metadata File Descriptor in RO-Crate is a special entity that provides metadata
+ * about the RO-Crate Metadata File itself (ro-crate-metadata.json). It ensures that the
+ * metadata file is properly identified and described within the RO-Crate structure.
+ */
+interface MetadataFileDescriptor extends Entity {
+  /**
+   * The type of the entity. This MUST be "CreativeWork" for a Metadata File Descriptor.
+   */
+  readonly "@type": "CreativeWork";
+
+  /**
+   * A reference to the Root Data Entity in the RO-Crate.
+   */
+  readonly about: Entity;
+  readonly conformsTo: Entity | Entity[];
+}
