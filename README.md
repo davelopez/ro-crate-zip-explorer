@@ -23,6 +23,9 @@ yarn add ro-crate-zip-explorer
 
 ## 🚀 Usage
 
+> [!WARNING]
+> The API is **not yet stable** and may change until a stable release is reached.
+
 ### Supported Environments
 
 - **Browser**: Works with `<input type="file">` for local file selection.
