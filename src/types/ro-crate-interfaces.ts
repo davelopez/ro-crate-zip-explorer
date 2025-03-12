@@ -31,7 +31,7 @@ export interface ROCrateImmutableView {
   /**
    * The root dataset entity. An alias for the entity with the same id as the rootId.
    */
-  readonly rootDataset: Entity;
+  readonly rootDataset: RootDataset;
 
   /**
    * The root identifier of the RO Crate
@@ -126,3 +126,54 @@ interface NodeRef {
 export interface Entity extends RawEntity, NodeRef {
   toJSON(): RawEntity;
 }
+
+/**
+ * The Root Data Entity in RO-Crate (Research Object Crate) is the main entry point
+ * for describing a research object in the RO-Crate metadata model. It represents
+ * the dataset or research object as a whole and serves as the primary entity connecting
+ * all other metadata descriptions.
+ */
+interface RootDataset extends Entity {
+  readonly "@type": "Dataset";
+
+  /**
+   * The identifier of the dataset. This MUST be the relative path "./" (indicating the
+   * directory of ro-crate-metadata.json is the RO-Crate Root), or an absolute URI.
+   */
+  readonly "@id": string;
+
+  /**
+   * The name of the dataset. This SHOULD identify the dataset to humans well enough to
+   * disambiguate it from other RO-Crates.
+   */
+  readonly name: string;
+
+  /**
+   * Further elaboration on the name to provide a summary of the context in which the
+   * dataset is important.
+   */
+  readonly description: string;
+
+  /**
+   * The date the dataset was published. This MUST be a string in ISO 8601 date format
+   * and SHOULD be specified to at least the precision of a day, MAY be a timestamp down
+   * to the millisecond.
+   */
+  readonly datePublished: string;
+
+  /**
+   * The license of the dataset. This SHOULD link to a Contextual Entity in the RO-Crate
+   * Metadata File with a name and description. MAY have a URI (eg for Creative Commons or
+   * Open Source licenses). MAY, if necessary be a textual description of how the RO-Crate
+   * may be used.
+   */
+  readonly license: string | Entity;
+
+  /**
+   * RO-Crates that have been assigned a persistent identifier (e.g. a DOI) MAY indicate
+   * this using identifier. This could be an URI or a reference to a Contextual Entity in
+   * the RO-Crate Metadata File.
+   */
+  readonly identifier?: string | Entity;
+}
+
