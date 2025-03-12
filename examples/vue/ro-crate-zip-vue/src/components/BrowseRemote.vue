@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { ROCrateZipExplorer, type ROCrateZip } from "ro-crate-zip-explorer";
+import { ROCrateZipExplorer, type ZipArchive } from "ro-crate-zip-explorer";
 import Explorer from "./Explorer.vue";
 
 const url = ref<string>(
   "https://raw.githubusercontent.com/davelopez/ro-crate-zip-explorer/refs/heads/main/tests/test-data/rocrate-test.zip",
 );
-const roCrateZipFile = ref<ROCrateZip>();
+const remoteZipArchive = ref<ZipArchive>();
 
 const canExploreRemote = computed(() => {
   try {
@@ -28,7 +28,7 @@ const exploreTooltip = computed(() => {
 async function exploreRemote() {
   console.log("URL", url.value);
   const explorer = new ROCrateZipExplorer(url.value);
-  roCrateZipFile.value = await explorer.open();
+  remoteZipArchive.value = await explorer.open();
 }
 </script>
 
@@ -49,7 +49,7 @@ async function exploreRemote() {
 
     <button :disabled="!canExploreRemote" @click="exploreRemote" class="button" :title="exploreTooltip">Explore</button>
 
-    <Explorer :ro-crate-zip-file="roCrateZipFile" />
+    <Explorer :zip-archive="remoteZipArchive" />
   </main>
 </template>
 

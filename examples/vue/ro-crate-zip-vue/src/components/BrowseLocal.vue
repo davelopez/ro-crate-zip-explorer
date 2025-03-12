@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { useFileSystemAccess } from "@vueuse/core";
-import { ROCrateZipExplorer, type ROCrateZip } from "ro-crate-zip-explorer";
+import { ROCrateZipExplorer, type ZipArchive } from "ro-crate-zip-explorer";
 import Explorer from "./Explorer.vue";
 
 const dataType = ref<"Text" | "ArrayBuffer" | "Blob">("ArrayBuffer");
@@ -29,12 +29,12 @@ const results = reactive({
   file: fileSystemAccess.file,
 });
 
-const roCrateZipFile = ref<ROCrateZip>();
+const localZipArchive = ref<ZipArchive>();
 
 watch(results, async () => {
   if (results.file) {
     const explorer = new ROCrateZipExplorer(results.file);
-    roCrateZipFile.value = await explorer.open();
+    localZipArchive.value = await explorer.open();
   }
 });
 </script>
@@ -78,7 +78,7 @@ watch(results, async () => {
         <span class="green">Last modified:</span> {{ new Date(results.fileLastModified) }}
       </p>
 
-      <Explorer :ro-crate-zip-file="roCrateZipFile" />
+      <Explorer :zip-archive="localZipArchive" />
     </div>
   </main>
 </template>

@@ -1,14 +1,40 @@
-import type { ROCrateReadOnlyView } from "./types/ro-crate-interfaces.js";
+import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 
 /**
- * Represents a Zip archive containing an RO-Crate manifest.
+ * Represents an interface for a service that can open a ZIP archive,
+ * explore its contents, and extract files from it.
  */
-export interface ROCrateZip {
-  /** The RO-Crate metadata object. */
-  readonly crate: ROCrateReadOnlyView;
+export interface IZipExplorer {
+  /**
+   * Opens the ZIP archive and performs any necessary initialization.
+   * @returns A promise that resolves when the ZIP archive is opened.
+   * @throws Throws an error if the ZIP archive cannot be opened.
+   */
+  open(): Promise<ZipArchive>;
 
-  /** The ZIP archive and its contents. */
-  readonly zip: ZipArchive;
+  /**
+   * Extracts the contents of a file from the ZIP archive.
+   * @param fileEntry - The file information object.
+   * @returns A promise that resolves with the file content as a Uint8Array.
+   * @throws Throws an error if the file cannot be extracted.
+   *
+   * @remarks
+   * This loads the entire file into memory. Consider using this method only for small files.
+   */
+  getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array>;
+}
+
+export interface IROCrateExplorer extends IZipExplorer {
+  /**
+   * Determines if the ZIP archive contains an RO-Crate manifest.
+   */
+  hasCrate: boolean;
+
+  /**
+   * The RO-Crate metadata in the ZIP archive.
+   * @throws Throws an error if the ZIP archive does not contain an RO-Crate manifest.
+   */
+  crate: ROCrateImmutableView;
 }
 
 /**
@@ -33,16 +59,35 @@ export interface ZipArchive {
   findFileByName(fileName: string): ZipFileEntry | undefined;
 }
 
+/**
+ * Represents either a file or a directory in a ZIP archive.
+ */
+export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
+
+/**
+ * Represents a file in a ZIP archive.
+ */
 export interface ZipFileEntry extends ZipEntry {
   readonly type: "File";
+
+  /**
+   * Extracts the file content from the ZIP archive.
+   * @returns A promise that resolves with the file content as a Uint8Array.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
+   * or if the file cannot be extracted.
+   *
+   * @remarks
+   * This loads the entire file into memory. Consider using this method only for small files.
+   */
   data(): Promise<Uint8Array>;
 }
 
+/**
+ * Represents a directory in a ZIP archive.
+ */
 export interface ZipDirectoryEntry extends ZipEntry {
   readonly type: "Directory";
 }
-
-export type AnyZipEntry = ZipFileEntry | ZipDirectoryEntry;
 
 /**
  * Represents a service for working with ZIP archives.

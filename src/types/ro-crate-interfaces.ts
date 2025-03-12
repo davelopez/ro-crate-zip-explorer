@@ -5,7 +5,7 @@
  * It also provides methods for resolving context terms, getting entity definitions,
  * getting entities from the graph, and checking if an entity exists in the graph.
  */
-export interface ROCrateReadOnlyView {
+export interface ROCrateImmutableView {
   /**
    * The context part of the crate. An alias for '@context'.
    * This returns the original context information.
@@ -36,7 +36,7 @@ export interface ROCrateReadOnlyView {
   /**
    * The root identifier of the RO Crate
    */
-  readonly rootId: string;
+  get rootId(): string;
 
   /**
    * Generate a local flat lookup table for context terms

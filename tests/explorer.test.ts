@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { ROCrateZipExplorer, type ROCrateZip } from "../src";
+import { ROCrateZipExplorer } from "../src";
+import type { ZipArchive } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("ROCrateZipExplorer", () => {
@@ -17,40 +18,68 @@ describe("ROCrateZipExplorer", () => {
 
   describe("Explore non-RO-Crate ZIP file", async () => {
     const nonROCrateTestFile = await testFileProvider.local("non-rocrate-test.zip");
+    const explorer = new ROCrateZipExplorer(nonROCrateTestFile.source);
 
-    it("should throw an error when opening a non-RO-Crate ZIP file", async () => {
-      const explorer = new ROCrateZipExplorer(nonROCrateTestFile.source);
-      await expect(explorer.open()).rejects.toThrow("No RO-Crate metadata file found in the ZIP archive");
+    describe("Before opening", () => {
+      it("should throw an error when trying to check the RO-Crate presence", () => {
+        expect(() => explorer.hasCrate).toThrow("Please call open() before trying to access the RO-Crate");
+      });
+    });
+
+    describe("After opening", () => {
+      let zipArchive: ZipArchive;
+
+      beforeAll(async () => {
+        zipArchive = await explorer.open();
+      });
+
+      it("should open a regular ZIP file without issues", () => {
+        expect(zipArchive).toBeDefined();
+      });
+
+      it("should indicate that the ZIP archive does not contain an RO-Crate", () => {
+        expect(explorer.hasCrate).toBe(false);
+      });
+
+      it("should throw an error when trying to access the RO-Crate metadata", () => {
+        expect(() => !!explorer.crate).toThrow("No RO-Crate metadata found in the ZIP archive");
+      });
     });
   });
 });
 
 const testExplorer = (zipTestFile: TestZipFile) => {
   let explorer: ROCrateZipExplorer;
-  let rocrateZip: ROCrateZip;
+  let zipArchive: ZipArchive;
 
   beforeAll(async () => {
     explorer = new ROCrateZipExplorer(zipTestFile.source);
-    rocrateZip = await explorer.open();
+    zipArchive = await explorer.open();
   });
 
   describe("open", () => {
-    it("should open the ZIP archive and extract the RO-Crate metadata", () => {
-      expect(rocrateZip).toBeDefined();
-      expect(rocrateZip.zip).toBeDefined();
-      expect(rocrateZip.crate).toBeDefined();
-      verifyCrateMetadataContext(rocrateZip.crate as Record<string, unknown>);
+    it("should return the ZIP archive", () => {
+      expect(zipArchive).toBeDefined();
     });
 
-    it("should return the same ZIP archive and RO-Crate metadata when called again", async () => {
+    it("should indicate that the ZIP archive contains an RO-Crate", () => {
+      expect(explorer.hasCrate).toBe(true);
+    });
+
+    it("should provide the RO-Crate metadata", () => {
+      expect(explorer.crate).toBeDefined();
+      verifyCrateMetadataContext(explorer.crate as Record<string, unknown>);
+    });
+
+    it("should return the same ZIP archive when called again", async () => {
       const secondOpen = await explorer.open();
-      expect(secondOpen).toBe(rocrateZip);
+      expect(secondOpen).toBe(zipArchive);
     });
   });
 
   describe("getFileContents", () => {
     it("should extract the contents of a file in the ZIP archive", async () => {
-      const file = rocrateZip.zip.findFileByName("ro-crate-metadata.json");
+      const file = zipArchive.findFileByName("ro-crate-metadata.json");
       expect(file).toBeDefined();
       if (file) {
         const fileContents = await explorer.getFileContents(file);
