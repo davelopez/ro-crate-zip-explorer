@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { ROCrateZip, ZipFileEntry } from "ro-crate-zip-explorer";
+import type { ZipArchive, ZipFileEntry } from "ro-crate-zip-explorer";
 
 interface Props {
-  roCrateZipFile?: ROCrateZip;
+  zipArchive?: ZipArchive;
 }
 
 const props = defineProps<Props>();
@@ -20,10 +20,10 @@ async function downloadFile(entry: ZipFileEntry) {
 </script>
 
 <template>
-  <div v-if="roCrateZipFile">
+  <div v-if="zipArchive">
     <h3>RO-Crate Zip file contents</h3>
     <ul>
-      <li v-for="file in roCrateZipFile.zip.entries" :key="file.path">
+      <li v-for="file in zipArchive.entries" :key="file.path">
         <span v-if="file.type == 'File'"> 📄 </span>
         <span v-else-if="file.type == 'Directory'"> 📁 </span>
         {{ file.path }}
