@@ -9,16 +9,16 @@ declare module "ro-crate" {
   export class ROCrate implements IROCrate {
     constructor(json: Record<string, unknown>, config?: ROCrateConfig);
 
-    context: unknown[];
+    "@context": string | string[];
+    context: string | string[];
+    "@graph": Entity[];
     graph: Entity[];
     graphSize: number;
-    metadataFileEntity: Entity;
-    rootDataset: Entity;
-    get rootId(): string;
+    metadataFileEntity: MetadataFileDescriptor;
+    rootDataset: RootDataset;
+    rootId: string;
 
-    resolveContext(): Promise<void>;
-    getDefinition(term: string): RawEntity | undefined;
-    getTerm(definition: string | Record<string, unknown>): string | undefined;
+    resolveContext(): Promise<ContextLookup>;
     getEntity(id: string): Entity | undefined;
     hasEntity(id: string): boolean;
     getIdentifier(name: string): string | undefined;

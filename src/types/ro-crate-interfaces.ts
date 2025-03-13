@@ -5,56 +5,45 @@
  * It also provides methods for resolving context terms, getting entity definitions,
  * getting entities from the graph, and checking if an entity exists in the graph.
  */
-export interface ROCrateImmutableView {
+export interface ROCrateImmutableView extends ContextLookup {
   /**
-   * The context part of the crate. An alias for '@context'.
+   * The context part of the crate.
    * This returns the original context information.
    */
-  readonly context: unknown[];
+  readonly "@context": string | string[];
 
-  /**
-   * An array of all nodes in the graph. An alias for '@graph'
-   */
+  /** An alias for '@context'. */
+  readonly context: string | string[];
+
+  /** An array of all nodes in the graph. */
+  readonly "@graph": Entity[];
+
+  /** An alias for '@graph' */
   readonly graph: Entity[];
 
-  /**
-   * The number of nodes in the graph
-   */
+  /** The number of nodes in the graph. */
   readonly graphSize: number;
 
   /**
    * The metadata file entity.
    * This is the entity that represents the metadata file of the RO Crate.
    */
-  readonly metadataFileEntity: Entity;
+  readonly metadataFileEntity: MetadataFileDescriptor;
 
   /**
    * The root dataset entity. An alias for the entity with the same id as the rootId.
    */
-  readonly rootDataset: Entity;
+  readonly rootDataset: RootDataset;
 
   /**
    * The root identifier of the RO Crate
    */
-  get rootId(): string;
+  readonly rootId: string;
 
   /**
    * Generate a local flat lookup table for context terms
    */
-  resolveContext(): Promise<void>;
-
-  /**
-   * Get the context term definition. This method will also search for term defined locally in the graph.
-   * Make sure `resolveContext()` has been called prior calling this method.
-   */
-  getDefinition(term: string): RawEntity | undefined;
-
-  /**
-   * Get the context term name from it's definition id.
-   * Make sure `resolveContext()` has been called prior calling this method.
-   * @param {string|object} definition
-   */
-  getTerm(definition: string | Record<string, unknown>): string | undefined;
+  resolveContext(): Promise<ContextLookup>;
 
   /**
    * Get an entity from the graph.
@@ -82,6 +71,24 @@ export interface ROCrateImmutableView {
    * @return plain JSON object
    */
   toJSON(): Record<string, unknown>;
+}
+
+/**
+ * This interface represents a context lookup table for resolving context terms.
+ */
+interface ContextLookup {
+  /**
+   * Get the context term definition. This method will also search for term defined locally in the graph.
+   * Make sure `resolveContext()` has been called prior calling this method.
+   */
+  getDefinition(term: string): RawEntity | undefined;
+
+  /**
+   * Get the context term name from it's definition id.
+   * Make sure `resolveContext()` has been called prior calling this method.
+   * @param {string|object} definition
+   */
+  getTerm(definition: string | RawEntity): string | undefined;
 }
 
 export interface ROCrateConfig {
@@ -120,9 +127,76 @@ export interface RawEntity {
 
 interface NodeRef {
   readonly "@id": string;
-  readonly "@reverse": Record<string, unknown>;
 }
 
 export interface Entity extends RawEntity, NodeRef {
-  toJSON(): RawEntity;
+  // TODO: Add more properties as needed
+}
+
+/**
+ * The Root Data Entity in RO-Crate (Research Object Crate) is the main entry point
+ * for describing a research object in the RO-Crate metadata model. It represents
+ * the dataset or research object as a whole and serves as the primary entity connecting
+ * all other metadata descriptions.
+ */
+interface RootDataset extends Entity {
+  readonly "@type": "Dataset";
+
+  /**
+   * The identifier of the dataset. This MUST be the relative path "./" (indicating the
+   * directory of ro-crate-metadata.json is the RO-Crate Root), or an absolute URI.
+   */
+  readonly "@id": string;
+
+  /**
+   * The name of the dataset. This SHOULD identify the dataset to humans well enough to
+   * disambiguate it from other RO-Crates.
+   */
+  readonly name: string;
+
+  /**
+   * Further elaboration on the name to provide a summary of the context in which the
+   * dataset is important.
+   */
+  readonly description: string;
+
+  /**
+   * The date the dataset was published. This MUST be a string in ISO 8601 date format
+   * and SHOULD be specified to at least the precision of a day, MAY be a timestamp down
+   * to the millisecond.
+   */
+  readonly datePublished: string;
+
+  /**
+   * The license of the dataset. This SHOULD link to a Contextual Entity in the RO-Crate
+   * Metadata File with a name and description. MAY have a URI (eg for Creative Commons or
+   * Open Source licenses). MAY, if necessary be a textual description of how the RO-Crate
+   * may be used.
+   */
+  readonly license: string | Entity;
+
+  /**
+   * RO-Crates that have been assigned a persistent identifier (e.g. a DOI) MAY indicate
+   * this using identifier. This could be an URI or a reference to a Contextual Entity in
+   * the RO-Crate Metadata File.
+   */
+  readonly identifier?: string | Entity;
+}
+
+/**
+ * The Metadata File Descriptor in RO-Crate is a special entity that provides metadata
+ * about the RO-Crate Metadata File itself (ro-crate-metadata.json). It ensures that the
+ * metadata file is properly identified and described within the RO-Crate structure.
+ */
+interface MetadataFileDescriptor extends Entity {
+  /**
+   * The type of the entity. This MUST be "CreativeWork" for a Metadata File Descriptor.
+   */
+  readonly "@type": "CreativeWork";
+
+  /**
+   * A reference to the Root Data Entity in the RO-Crate.
+   */
+  readonly about: Entity;
+  readonly conformsTo: Entity | Entity[];
 }
