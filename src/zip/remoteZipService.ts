@@ -5,9 +5,9 @@ export class RemoteZipService extends AbstractZipService {
   private url: string;
   private rangeSupport?: RangeSupport;
 
-  constructor(private originalUrl: string) {
-    super();
-    this.url = validateUrl(originalUrl);
+  constructor(url: string) {
+    super(url);
+    this.url = validateUrl(url);
   }
 
   protected override async doOpen(): Promise<void> {

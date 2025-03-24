@@ -2,7 +2,7 @@ import { AbstractZipService } from "./zipService.js";
 
 export class LocalZipService extends AbstractZipService {
   constructor(private zipFile: File) {
-    super();
+    super(zipFile);
   }
 
   public override async doOpen(): Promise<void> {
