@@ -1,5 +1,11 @@
 # ro-crate-zip-explorer
 
+## 0.2.1
+
+### Patch Changes
+
+- 9ae14d2: Improve archive source handling
+
 ## 0.2.0
 
 ### Minor Changes
