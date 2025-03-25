@@ -1,5 +1,5 @@
 import { ROCrate } from "ro-crate";
-import type { IROCrateExplorer, IZipExplorer, ZipArchive, ZipFileEntry, ZipService } from "./interfaces.js";
+import type { IROCrateExplorer, IZipExplorer, ZipArchive, ZipFileEntry, ZipService, ZipSource } from "./interfaces.js";
 import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
@@ -22,7 +22,7 @@ export class ZipExplorer implements IZipExplorer {
   protected readonly zipService: ZipService;
   protected zipArchive?: ZipArchive;
 
-  public constructor(source: File | string) {
+  public constructor(source: ZipSource) {
     this.zipService = zipServiceFactory(source);
   }
 
@@ -103,7 +103,7 @@ export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer 
   }
 }
 
-function zipServiceFactory(source: File | string): ZipService {
+function zipServiceFactory(source: ZipSource): ZipService {
   if (source instanceof File) {
     return new LocalZipService(source);
   } else {

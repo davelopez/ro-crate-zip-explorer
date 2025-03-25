@@ -7,13 +7,23 @@
  */
 
 import * as pako from "pako";
-import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipFileEntry, ZipService } from "../interfaces.js";
+import type {
+  AnyZipEntry,
+  ZipArchive,
+  ZipDirectoryEntry,
+  ZipEntry,
+  ZipFileEntry,
+  ZipService,
+  ZipSource,
+} from "../interfaces.js";
 
 /**
  * Abstract class that provides common functionality for ZIP archive services.
  */
 export abstract class AbstractZipService implements ZipService {
   private _eocdData?: EndOfCentralDirectoryData;
+
+  constructor(public source: ZipSource) {}
 
   public async open(): Promise<ZipArchive> {
     await this.doOpen();
@@ -22,6 +32,7 @@ export abstract class AbstractZipService implements ZipService {
     const zipArchive: ZipArchive = {
       entries,
       size: this.zipSize,
+      source: this.source,
       isZip64: this.eocdData.isZip64,
       findFileByName: (fileName: string) =>
         entries.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry,

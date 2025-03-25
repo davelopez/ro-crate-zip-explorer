@@ -1,6 +1,11 @@
 import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 
 /**
+ * Types of sources that can be used to open a ZIP archive.
+ */
+export type ZipSource = File | string;
+
+/**
  * Represents an interface for a service that can open a ZIP archive,
  * explore its contents, and extract files from it.
  */
@@ -42,13 +47,19 @@ export interface IROCrateExplorer extends IZipExplorer {
  */
 export interface ZipArchive {
   /** The list of files and directories in the ZIP archive. */
-  readonly entries: ZipEntry[];
+  readonly entries: AnyZipEntry[];
 
   /** The total size of the ZIP archive in bytes. */
   readonly size: number;
 
   /** Determines if the ZIP archive is a ZIP64 archive. */
   readonly isZip64: boolean;
+
+  /**
+   * Determines the source of the ZIP archive.
+   * Either a File object or a URL string.
+   */
+  readonly source: ZipSource;
 
   /**
    * Finds a file in the ZIP archive by its name.
