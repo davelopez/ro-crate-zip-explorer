@@ -49,6 +49,9 @@ export interface ZipArchive {
   /** The list of files and directories in the ZIP archive. */
   readonly entries: AnyZipEntry[];
 
+  /** A map of file names to their corresponding file information objects. */
+  readonly entryMap: Map<string, AnyZipEntry>;
+
   /** The total size of the ZIP archive in bytes. */
   readonly size: number;
 

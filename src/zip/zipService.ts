@@ -31,6 +31,7 @@ export abstract class AbstractZipService implements ZipService {
     const entries = await this.getZipEntries();
     const zipArchive: ZipArchive = {
       entries,
+      entryMap: new Map(entries.map((entry) => [entry.path, entry])),
       size: this.zipSize,
       source: this.source,
       isZip64: this.eocdData.isZip64,
