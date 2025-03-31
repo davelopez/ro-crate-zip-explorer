@@ -44,6 +44,14 @@ export abstract class AbstractZipService implements ZipService {
         }
         return foundFileEntry;
       },
+      findEntry: (predicate: (entry: AnyZipEntry) => boolean) => {
+        for (const entry of entries.values()) {
+          if (predicate(entry)) {
+            return entry;
+          }
+        }
+        return undefined;
+      },
     };
     this.cleanupAfterInitialization();
     return zipArchive;

@@ -71,6 +71,14 @@ export interface ZipArchive {
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
   findFileByName(fileName: string): ZipFileEntry | undefined;
+
+  /**
+   * Finds an entry in the ZIP archive that matches a specific criteria.
+   * @param predicate - A function that takes a file information object and returns a boolean indicating whether the file matches the criteria.
+   * @returns The first file information object that matches the criteria or `undefined` if no match is found.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
+   */
+  findEntry(predicate: (entry: AnyZipEntry) => boolean): AnyZipEntry | undefined;
 }
 
 /**

@@ -37,7 +37,7 @@ describe("ZipService.extractFile", () => {
       const testFile = await testFileProvider.local("rocrate-test.zip");
       const zipService = testFile.zipService;
       const zipArchive = await zipService.open();
-      const directory = [...zipArchive.entries.values()].find((entry) => entry.type === "Directory");
+      const directory = zipArchive.findEntry((entry) => entry.type === "Directory");
 
       assert(directory, "No directory found in the ZIP archive");
       await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
