@@ -10,6 +10,9 @@ export type ZipSource = File | string;
  * explore its contents, and extract files from it.
  */
 export interface IZipExplorer {
+  /** A map of file names to their corresponding file information objects. */
+  readonly entries: Map<string, AnyZipEntry>;
+
   /**
    * Opens the ZIP archive and performs any necessary initialization.
    * @returns A promise that resolves when the ZIP archive is opened.
@@ -46,11 +49,8 @@ export interface IROCrateExplorer extends IZipExplorer {
  * Represents a ZIP archive and its contents.
  */
 export interface ZipArchive {
-  /** The list of files and directories in the ZIP archive. */
-  readonly entries: AnyZipEntry[];
-
   /** A map of file names to their corresponding file information objects. */
-  readonly entryMap: Map<string, AnyZipEntry>;
+  readonly entries: Map<string, AnyZipEntry>;
 
   /** The total size of the ZIP archive in bytes. */
   readonly size: number;

@@ -21,8 +21,12 @@ describe("ROCrateZipExplorer", () => {
     const explorer = new ROCrateZipExplorer(nonROCrateTestFile.source);
 
     describe("Before opening", () => {
+      it("should throw an error when trying to access the entries", () => {
+        expect(() => explorer.entries).toThrow("Please call open() before accessing the ZIP archive");
+      });
+
       it("should throw an error when trying to check the RO-Crate presence", () => {
-        expect(() => explorer.hasCrate).toThrow("Please call open() before trying to access the RO-Crate");
+        expect(() => explorer.hasCrate).toThrow("Please call open() before accessing the ZIP archive");
       });
     });
 
@@ -62,13 +66,17 @@ const testExplorer = (zipTestFile: TestZipFile) => {
       expect(zipArchive).toBeDefined();
     });
 
+    it("should have the correct number of entries in the ZIP archive", () => {
+      expect(zipArchive.entries.size).toBe(zipTestFile.expectations.entriesCount);
+    });
+
     it("should indicate that the ZIP archive contains an RO-Crate", () => {
       expect(explorer.hasCrate).toBe(true);
     });
 
     it("should provide the RO-Crate metadata", () => {
       expect(explorer.crate).toBeDefined();
-      verifyCrateMetadataContext(explorer.crate as Record<string, unknown>);
+      verifyCrateMetadataContext(explorer.crate);
     });
 
     it("should return the same ZIP archive when called again", async () => {

@@ -37,7 +37,7 @@ describe("ZipService.extractFile", () => {
       const testFile = await testFileProvider.local("rocrate-test.zip");
       const zipService = testFile.zipService;
       const zipArchive = await zipService.open();
-      const directory = zipArchive.entries.find((entry) => entry.type === "Directory");
+      const directory = [...zipArchive.entries.values()].find((entry) => entry.type === "Directory");
 
       assert(directory, "No directory found in the ZIP archive");
       await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
@@ -59,13 +59,13 @@ const testZipService = (zipTestFile: TestZipFile) => {
   describe("zipArchive", () => {
     describe("listFiles", () => {
       it("should return a list with all the files and directories contained in the remote Zip archive", () => {
-        expect(zipArchive.entries.length).toBe(expectations.entriesCount);
+        expect(zipArchive.entries.size).toBe(expectations.entriesCount);
       });
     });
 
     describe("extractFile", () => {
       it("should decompress and return the content of the file in the remote Zip archive", async () => {
-        expect(zipArchive.entries.length).toBeGreaterThan(0);
+        expect(zipArchive.entries.size).toBeGreaterThan(0);
         const remoteMetadataFile = zipArchive.findFileByName("ro-crate-metadata.json");
 
         if (!remoteMetadataFile) {
