@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import util from "util";
 import { expect } from "vitest";
+import type { ROCrateImmutableView } from "../src/index.js";
 import type { ZipService } from "../src/interfaces.js";
 import { LocalZipService } from "../src/zip/localZipService.js";
 import { RemoteZipService } from "../src/zip/remoteZipService.js";
@@ -102,7 +103,7 @@ export interface TestZipFile {
 }
 
 export function verifyCrateMetadataContext(
-  crate: Record<string, unknown>,
+  crate: ROCrateImmutableView | Record<string, unknown>,
   expectedContextUrl = "https://w3id.org/ro/crate/1.1/context",
 ) {
   const context = crate["@context"];

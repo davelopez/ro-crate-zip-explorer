@@ -10,6 +10,9 @@ export type ZipSource = File | string;
  * explore its contents, and extract files from it.
  */
 export interface IZipExplorer {
+  /** A map of file names to their corresponding file information objects. */
+  readonly entries: Map<string, AnyZipEntry>;
+
   /**
    * Opens the ZIP archive and performs any necessary initialization.
    * @returns A promise that resolves when the ZIP archive is opened.
@@ -46,8 +49,8 @@ export interface IROCrateExplorer extends IZipExplorer {
  * Represents a ZIP archive and its contents.
  */
 export interface ZipArchive {
-  /** The list of files and directories in the ZIP archive. */
-  readonly entries: AnyZipEntry[];
+  /** A map of file names to their corresponding file information objects. */
+  readonly entries: Map<string, AnyZipEntry>;
 
   /** The total size of the ZIP archive in bytes. */
   readonly size: number;
@@ -68,6 +71,14 @@ export interface ZipArchive {
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
   findFileByName(fileName: string): ZipFileEntry | undefined;
+
+  /**
+   * Finds an entry in the ZIP archive that matches a specific criteria.
+   * @param predicate - A function that takes a file information object and returns a boolean indicating whether the file matches the criteria.
+   * @returns The first file information object that matches the criteria or `undefined` if no match is found.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
+   */
+  findEntry(predicate: (entry: AnyZipEntry) => boolean): AnyZipEntry | undefined;
 }
 
 /**

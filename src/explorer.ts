@@ -1,5 +1,13 @@
 import { ROCrate } from "ro-crate";
-import type { IROCrateExplorer, IZipExplorer, ZipArchive, ZipFileEntry, ZipService, ZipSource } from "./interfaces.js";
+import type {
+  AnyZipEntry,
+  IROCrateExplorer,
+  IZipExplorer,
+  ZipArchive,
+  ZipFileEntry,
+  ZipService,
+  ZipSource,
+} from "./interfaces.js";
 import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
@@ -22,7 +30,11 @@ export class ZipExplorer implements IZipExplorer {
   protected readonly zipService: ZipService;
   protected zipArchive?: ZipArchive;
 
-  public constructor(source: ZipSource) {
+  public get entries(): Map<string, AnyZipEntry> {
+    return this.ensureZipArchiveOpen().entries;
+  }
+
+  public constructor(public readonly source: ZipSource) {
     this.zipService = zipServiceFactory(source);
   }
 
@@ -35,6 +47,13 @@ export class ZipExplorer implements IZipExplorer {
 
   public async getFileContents(fileEntry: ZipFileEntry) {
     return await this.zipService.extractFile(fileEntry);
+  }
+
+  protected ensureZipArchiveOpen(): ZipArchive {
+    if (!this.zipArchive) {
+      throw new Error("Please call open() before accessing the ZIP archive");
+    }
+    return this.zipArchive;
   }
 }
 
@@ -94,12 +113,6 @@ export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer 
   private findCrateEntry(zipArchive: ZipArchive): ZipFileEntry | undefined {
     const roCrateFileEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
     return roCrateFileEntry;
-  }
-
-  private ensureZipArchiveOpen(): void {
-    if (!this.zipArchive) {
-      throw new Error("Please call open() before trying to access the RO-Crate");
-    }
   }
 }
 

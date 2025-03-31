@@ -23,7 +23,7 @@ async function downloadFile(entry: ZipFileEntry) {
   <div v-if="zipArchive">
     <h3>RO-Crate Zip file contents</h3>
     <ul>
-      <li v-for="file in zipArchive.entries" :key="file.path">
+      <li v-for="file in zipArchive.entries.values()" :key="file.path">
         <span v-if="file.type == 'File'"> 📄 </span>
         <span v-else-if="file.type == 'Directory'"> 📁 </span>
         {{ file.path }}

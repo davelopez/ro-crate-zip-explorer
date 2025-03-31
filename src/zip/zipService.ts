@@ -34,8 +34,24 @@ export abstract class AbstractZipService implements ZipService {
       size: this.zipSize,
       source: this.source,
       isZip64: this.eocdData.isZip64,
-      findFileByName: (fileName: string) =>
-        entries.find((file) => file.type === "File" && file.path.endsWith(fileName)) as ZipFileEntry,
+      findFileByName: (fileName: string) => {
+        let foundFileEntry: ZipFileEntry | undefined;
+        for (const entry of entries.values()) {
+          if (entry.type === "File" && entry.path.endsWith(fileName)) {
+            foundFileEntry = entry;
+            break;
+          }
+        }
+        return foundFileEntry;
+      },
+      findEntry: (predicate: (entry: AnyZipEntry) => boolean) => {
+        for (const entry of entries.values()) {
+          if (predicate(entry)) {
+            return entry;
+          }
+        }
+        return undefined;
+      },
     };
     this.cleanupAfterInitialization();
     return zipArchive;
@@ -98,19 +114,19 @@ export abstract class AbstractZipService implements ZipService {
 
   /**
    * Retrieves the ZIP entries from the Central Directory.
-   * @returns A promise that resolves with an array of ZIP file entries.
+   * @returns A promise that resolves with a map of ZIP file entries (by path).
    * @throws An error if the ZIP entries cannot be parsed.
    */
-  protected async getZipEntries(): Promise<AnyZipEntry[]> {
+  protected async getZipEntries(): Promise<Map<string, AnyZipEntry>> {
     try {
-      const entries = [];
+      const entries = new Map<string, AnyZipEntry>();
       let offset = 0;
       const centralDirectoryData = await this.getCentralDirectory();
       while (offset < centralDirectoryData.byteLength) {
         const centralDirectoryFileHeader = this.parseCentralDirectoryFileHeader(centralDirectoryData, offset);
         const entry = this.createZipEntry(centralDirectoryFileHeader);
 
-        entries.push(entry);
+        entries.set(entry.path, entry);
         offset += centralDirectoryFileHeader.nextOffset;
       }
       return entries;

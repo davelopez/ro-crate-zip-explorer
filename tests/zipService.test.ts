@@ -1,5 +1,6 @@
+import assert from "assert";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { ZipArchive, ZipFileEntry } from "../src/interfaces";
+import type { ZipArchive } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
 describe("LocalZipService Implementation", async () => {
@@ -36,9 +37,9 @@ describe("ZipService.extractFile", () => {
       const testFile = await testFileProvider.local("rocrate-test.zip");
       const zipService = testFile.zipService;
       const zipArchive = await zipService.open();
-      const directory = zipArchive.entries.find((entry) => entry.type === "Directory") as ZipFileEntry;
+      const directory = zipArchive.findEntry((entry) => entry.type === "Directory");
 
-      expect(directory).toBeDefined();
+      assert(directory, "No directory found in the ZIP archive");
       await expect(zipService.extractFile(directory)).rejects.toThrow("Cannot extract a directory");
     } finally {
       consoleErrorSpy.mockRestore();
@@ -58,13 +59,13 @@ const testZipService = (zipTestFile: TestZipFile) => {
   describe("zipArchive", () => {
     describe("listFiles", () => {
       it("should return a list with all the files and directories contained in the remote Zip archive", () => {
-        expect(zipArchive.entries.length).toBe(expectations.entriesCount);
+        expect(zipArchive.entries.size).toBe(expectations.entriesCount);
       });
     });
 
     describe("extractFile", () => {
       it("should decompress and return the content of the file in the remote Zip archive", async () => {
-        expect(zipArchive.entries.length).toBeGreaterThan(0);
+        expect(zipArchive.entries.size).toBeGreaterThan(0);
         const remoteMetadataFile = zipArchive.findFileByName("ro-crate-metadata.json");
 
         if (!remoteMetadataFile) {
