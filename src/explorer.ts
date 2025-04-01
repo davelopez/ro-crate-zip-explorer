@@ -1,8 +1,10 @@
 import { ROCrate } from "ro-crate";
 import type {
   AnyZipEntry,
+  FileMetadata,
   IROCrateExplorer,
   IZipExplorer,
+  IZipExplorerWithMetadata,
   ZipArchive,
   ZipFileEntry,
   ZipService,
@@ -28,32 +30,126 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  */
 export class ZipExplorer implements IZipExplorer {
   protected readonly zipService: ZipService;
-  protected zipArchive?: ZipArchive;
-
-  public get entries(): Map<string, AnyZipEntry> {
-    return this.ensureZipArchiveOpen().entries;
-  }
+  protected _zipArchive?: ZipArchive;
 
   public constructor(public readonly source: ZipSource) {
     this.zipService = zipServiceFactory(source);
   }
 
-  public async open(): Promise<ZipArchive> {
-    if (!this.zipArchive) {
-      this.zipArchive = await this.zipService.open();
+  public get entries(): Map<string, AnyZipEntry> {
+    return this.ensureZipArchiveOpen().entries;
+  }
+
+  public get zipArchive(): ZipArchive {
+    return this.ensureZipArchiveOpen();
+  }
+
+  public ensureZipArchiveOpen(): ZipArchive {
+    if (!this._zipArchive) {
+      throw new Error("Please call open() before accessing the ZIP archive");
     }
-    return this.zipArchive;
+    return this._zipArchive;
+  }
+
+  public async open(): Promise<ZipArchive> {
+    if (!this._zipArchive) {
+      this._zipArchive = await this.zipService.open();
+    }
+    return this._zipArchive;
   }
 
   public async getFileContents(fileEntry: ZipFileEntry) {
     return await this.zipService.extractFile(fileEntry);
   }
+}
 
-  protected ensureZipArchiveOpen(): ZipArchive {
-    if (!this.zipArchive) {
-      throw new Error("Please call open() before accessing the ZIP archive");
+export abstract class AbstractZipExplorerWithMetadata implements IZipExplorerWithMetadata {
+  private fileMetadataMap: Map<string, FileMetadata> = new Map<string, FileMetadata>();
+  protected readonly explorer: IZipExplorer;
+
+  constructor(sourceOrExplorer: ZipSource | IZipExplorer) {
+    if (isZipExplorer(sourceOrExplorer)) {
+      this.explorer = sourceOrExplorer;
+    } else {
+      this.explorer = new ZipExplorer(sourceOrExplorer);
     }
-    return this.zipArchive;
+  }
+
+  public get entries(): Map<string, AnyZipEntry> {
+    return this.explorer.entries;
+  }
+
+  public get zipArchive(): ZipArchive {
+    return this.explorer.zipArchive;
+  }
+
+  public ensureZipArchiveOpen(): ZipArchive {
+    return this.explorer.ensureZipArchiveOpen();
+  }
+
+  public open(): Promise<ZipArchive> {
+    return this.explorer.open();
+  }
+
+  public getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array> {
+    return this.explorer.getFileContents(fileEntry);
+  }
+
+  public async extractMetadata(): Promise<void> {
+    this.fileMetadataMap.clear();
+
+    await this.loadMetadata();
+
+    const zipFileEntries = this.explorer.entries.values();
+    for (const entry of zipFileEntries) {
+      if (entry.type === "File") {
+        const metadata = this.extractMetadataFromEntry(entry);
+        this.fileMetadataMap.set(entry.path, metadata);
+      }
+    }
+  }
+
+  public getFileEntryMetadata(entry: ZipFileEntry): FileMetadata {
+    const metadata = this.fileMetadataMap.get(entry.path);
+    if (!metadata) {
+      throw new Error(`Metadata for file ${entry.path} not found. Make sure to call extractMetadata() first.`);
+    }
+    return metadata;
+  }
+
+  /**
+   * Loads the metadata from the ZIP archive.
+   * This method should be implemented by subclasses to provide specific metadata extraction logic.
+   * @returns A promise that resolves when the metadata is loaded.
+   * @throws Throws an error if the metadata cannot be loaded.
+   * @remarks
+   * This method is called by the `extractMetadata` method to load the metadata from the contents of the ZIP archive
+   * prior to extracting the metadata from each file entry.
+   */
+  protected abstract loadMetadata(): Promise<void>;
+
+  /**
+   * Extracts partial file metadata from a ZIP file entry.
+   * This method should be implemented by subclasses to provide specific metadata extraction logic.
+   * @param entry - The ZIP file entry to extract metadata from.
+   * @returns A partial FileMetadata object containing the extracted metadata.
+   *
+   * @remarks
+   * This method returns all the metadata that can be extracted from the information provided by loadMetadata.
+   * The metadata returned by this method is merged with the metadata extracted from the ZIP file entry itself.
+   */
+  protected abstract extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata>;
+
+  protected extractMetadataFromEntry(entry: ZipFileEntry): FileMetadata {
+    const metadata = this.extractPartialFileMetadata(entry);
+
+    const fullMetadata: FileMetadata = {
+      name: metadata.name ?? entry.path.split("/").pop() ?? entry.path,
+      size: metadata.size ?? entry.fileSize,
+      description: metadata.description,
+    };
+
+    return fullMetadata;
   }
 }
 
@@ -75,11 +171,11 @@ export class ZipExplorer implements IZipExplorer {
  * }
  * ```
  */
-export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer {
+export class ROCrateZipExplorer extends AbstractZipExplorerWithMetadata implements IROCrateExplorer {
   private _crate?: ROCrate | null = undefined;
 
   public get hasCrate(): boolean {
-    this.ensureZipArchiveOpen();
+    this.explorer.ensureZipArchiveOpen();
     return Boolean(this._crate);
   }
 
@@ -88,31 +184,37 @@ export class ROCrateZipExplorer extends ZipExplorer implements IROCrateExplorer 
       // Here only an immutable view of the RO-Crate is returned
       return this._crate as ROCrateImmutableView;
     }
-    this.ensureZipArchiveOpen();
+    this.explorer.ensureZipArchiveOpen();
     throw new Error("No RO-Crate metadata found in the ZIP archive");
   }
 
-  public override async open(): Promise<ZipArchive> {
-    const zipArchive = await super.open();
-    this._crate = await this.extractROCrateMetadata(zipArchive);
-    return zipArchive;
+  protected override async loadMetadata(): Promise<void> {
+    if (!this._crate) {
+      this._crate = await this.extractROCrateMetadata(this.explorer.ensureZipArchiveOpen());
+    }
+  }
+
+  protected override extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+    const entity = this.crate.getEntity(entry.path);
+    if (!entity) {
+      return {};
+    }
+    return {
+      name: "name" in entity && typeof entity.name === "string" ? entity.name : undefined,
+      description: "description" in entity && typeof entity.description === "string" ? entity.description : undefined,
+    };
   }
 
   private async extractROCrateMetadata(zipArchive: ZipArchive): Promise<ROCrate | null> {
-    const crateEntry = this.findCrateEntry(zipArchive);
+    const crateEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
     if (!crateEntry) {
       return null;
     }
-    const crateData = await this.zipService.extractFile(crateEntry);
+    const crateData = await crateEntry.data();
     const crateJson = new TextDecoder().decode(crateData);
     const json = JSON.parse(crateJson) as Record<string, unknown>;
     const crate = new ROCrate(json, { array: false, link: true });
     return crate;
-  }
-
-  private findCrateEntry(zipArchive: ZipArchive): ZipFileEntry | undefined {
-    const roCrateFileEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
-    return roCrateFileEntry;
   }
 }
 
@@ -122,4 +224,8 @@ function zipServiceFactory(source: ZipSource): ZipService {
   } else {
     return new RemoteZipService(source);
   }
+}
+
+function isZipExplorer(source: ZipSource | IZipExplorer): source is IZipExplorer {
+  return source instanceof ZipExplorer;
 }

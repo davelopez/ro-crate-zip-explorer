@@ -13,6 +13,10 @@ export interface IZipExplorer {
   /** A map of file names to their corresponding file information objects. */
   readonly entries: Map<string, AnyZipEntry>;
 
+  readonly zipArchive: ZipArchive;
+
+  ensureZipArchiveOpen(): ZipArchive;
+
   /**
    * Opens the ZIP archive and performs any necessary initialization.
    * @returns A promise that resolves when the ZIP archive is opened.
@@ -32,7 +36,23 @@ export interface IZipExplorer {
   getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array>;
 }
 
-export interface IROCrateExplorer extends IZipExplorer {
+export interface FileMetadata {
+  /** The name of the file. */
+  name: string;
+  /** The size of the file in bytes. */
+  size: number;
+  /** An optional description of the file. */
+  description?: string;
+}
+
+export interface IMetadataProvider {
+  extractMetadata(): Promise<void>;
+  getFileEntryMetadata(entry: ZipFileEntry): FileMetadata;
+}
+
+export interface IZipExplorerWithMetadata extends IZipExplorer, IMetadataProvider {}
+
+export interface IROCrateExplorer {
   /**
    * Determines if the ZIP archive contains an RO-Crate manifest.
    */
