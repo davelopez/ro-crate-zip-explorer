@@ -9,7 +9,7 @@ export type ZipSource = File | string;
  * Represents an interface for a service that can open a ZIP archive,
  * explore its contents, and extract files from it.
  */
-export interface IZipExplorer {
+export interface IZipExplorer extends IFileMetadataProvider {
   /** A map of file names to their corresponding file information objects. */
   readonly entries: Map<string, AnyZipEntry>;
 
@@ -45,12 +45,10 @@ export interface FileMetadata {
   description?: string;
 }
 
-export interface IMetadataProvider {
+export interface IFileMetadataProvider {
   extractMetadata(): Promise<void>;
   getFileEntryMetadata(entry: ZipFileEntry): FileMetadata;
 }
-
-export interface IZipExplorerWithMetadata extends IZipExplorer, IMetadataProvider {}
 
 export interface IROCrateExplorer {
   /**

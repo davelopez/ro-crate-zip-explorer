@@ -2,9 +2,9 @@ import { ROCrate } from "ro-crate";
 import type {
   AnyZipEntry,
   FileMetadata,
+  IFileMetadataProvider,
   IROCrateExplorer,
   IZipExplorer,
-  IZipExplorerWithMetadata,
   ZipArchive,
   ZipFileEntry,
   ZipService,
@@ -16,91 +16,17 @@ import { RemoteZipService } from "./zip/remoteZipService.js";
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 
-/**
- * A class for exploring the contents of a ZIP archive.
- *
- * You can either pass a File object representing a ZIP archive or a URL string pointing to a remotely hosted ZIP archive.
- *
- * Example usage:
- * ```typescript
- * const explorer = new ZipExplorer("https://example.com/archive.zip");
- * const zip = await explorer.open();
- * console.log(zip.size);
- * ```
- */
-export class ZipExplorer implements IZipExplorer {
-  protected readonly zipService: ZipService;
-  protected _zipArchive?: ZipArchive;
-
-  public constructor(public readonly source: ZipSource) {
-    this.zipService = zipServiceFactory(source);
-  }
-
-  public get entries(): Map<string, AnyZipEntry> {
-    return this.ensureZipArchiveOpen().entries;
-  }
-
-  public get zipArchive(): ZipArchive {
-    return this.ensureZipArchiveOpen();
-  }
-
-  public ensureZipArchiveOpen(): ZipArchive {
-    if (!this._zipArchive) {
-      throw new Error("Please call open() before accessing the ZIP archive");
-    }
-    return this._zipArchive;
-  }
-
-  public async open(): Promise<ZipArchive> {
-    if (!this._zipArchive) {
-      this._zipArchive = await this.zipService.open();
-    }
-    return this._zipArchive;
-  }
-
-  public async getFileContents(fileEntry: ZipFileEntry) {
-    return await this.zipService.extractFile(fileEntry);
-  }
-}
-
-export abstract class AbstractZipExplorerWithMetadata implements IZipExplorerWithMetadata {
+abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
   private fileMetadataMap: Map<string, FileMetadata> = new Map<string, FileMetadata>();
-  protected readonly explorer: IZipExplorer;
 
-  constructor(sourceOrExplorer: ZipSource | IZipExplorer) {
-    if (isZipExplorer(sourceOrExplorer)) {
-      this.explorer = sourceOrExplorer;
-    } else {
-      this.explorer = new ZipExplorer(sourceOrExplorer);
-    }
-  }
-
-  public get entries(): Map<string, AnyZipEntry> {
-    return this.explorer.entries;
-  }
-
-  public get zipArchive(): ZipArchive {
-    return this.explorer.zipArchive;
-  }
-
-  public ensureZipArchiveOpen(): ZipArchive {
-    return this.explorer.ensureZipArchiveOpen();
-  }
-
-  public open(): Promise<ZipArchive> {
-    return this.explorer.open();
-  }
-
-  public getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array> {
-    return this.explorer.getFileContents(fileEntry);
-  }
+  public abstract get entries(): Map<string, AnyZipEntry>;
 
   public async extractMetadata(): Promise<void> {
     this.fileMetadataMap.clear();
 
     await this.loadMetadata();
 
-    const zipFileEntries = this.explorer.entries.values();
+    const zipFileEntries = this.entries.values();
     for (const entry of zipFileEntries) {
       if (entry.type === "File") {
         const metadata = this.extractMetadataFromEntry(entry);
@@ -154,6 +80,101 @@ export abstract class AbstractZipExplorerWithMetadata implements IZipExplorerWit
 }
 
 /**
+ * A class for exploring the contents of a ZIP archive.
+ *
+ * You can either pass a File object representing a ZIP archive or a URL string pointing to a remotely hosted ZIP archive.
+ *
+ * Example usage:
+ * ```typescript
+ * const explorer = new ZipExplorer("https://example.com/archive.zip");
+ * const zip = await explorer.open();
+ * console.log(zip.size);
+ * ```
+ */
+export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExplorer {
+  protected readonly zipService: ZipService;
+  protected _zipArchive?: ZipArchive;
+
+  public constructor(public readonly source: ZipSource) {
+    super();
+    this.zipService = zipServiceFactory(source);
+  }
+
+  public get entries(): Map<string, AnyZipEntry> {
+    return this.ensureZipArchiveOpen().entries;
+  }
+
+  public get zipArchive(): ZipArchive {
+    return this.ensureZipArchiveOpen();
+  }
+
+  public ensureZipArchiveOpen(): ZipArchive {
+    if (!this._zipArchive) {
+      throw new Error("Please call open() before accessing the ZIP archive");
+    }
+    return this._zipArchive;
+  }
+
+  public async open(): Promise<ZipArchive> {
+    if (!this._zipArchive) {
+      this._zipArchive = await this.zipService.open();
+    }
+    return this._zipArchive;
+  }
+
+  protected loadMetadata(): Promise<void> {
+    // No metadata loading is performed here as the basic metadata comes directly from the file entry.
+    // Subclasses can override this method to implement specific metadata loading logic.
+    return Promise.resolve();
+  }
+
+  protected extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+    return {
+      name: entry.path.split("/").pop() ?? entry.path,
+      size: entry.fileSize,
+      description: undefined,
+    };
+  }
+
+  public async getFileContents(fileEntry: ZipFileEntry) {
+    return await this.zipService.extractFile(fileEntry);
+  }
+}
+
+export abstract class AbstractZipExplorer extends AbstractFileMetadataProvider implements IZipExplorer {
+  protected readonly explorer: IZipExplorer;
+
+  constructor(sourceOrExplorer: ZipSource | IZipExplorer) {
+    super();
+    if (isZipExplorer(sourceOrExplorer)) {
+      this.explorer = sourceOrExplorer;
+    } else {
+      this.explorer = new ZipExplorer(sourceOrExplorer);
+    }
+  }
+
+  public get entries(): Map<string, AnyZipEntry> {
+    return this.explorer.entries;
+  }
+
+  public get zipArchive(): ZipArchive {
+    return this.explorer.zipArchive;
+  }
+
+  public ensureZipArchiveOpen(): ZipArchive {
+    return this.explorer.ensureZipArchiveOpen();
+  }
+
+  public open(): Promise<ZipArchive> {
+    return this.explorer.open();
+  }
+
+  public getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array> {
+    return this.explorer.getFileContents(fileEntry);
+  }
+}
+
+/**
  * A class for exploring the contents of a ZIP archive containing an RO-Crate manifest.
  *
  * You can either pass a File object representing a ZIP archive or a URL string pointing to a remotely hosted ZIP archive.
@@ -171,7 +192,7 @@ export abstract class AbstractZipExplorerWithMetadata implements IZipExplorerWit
  * }
  * ```
  */
-export class ROCrateZipExplorer extends AbstractZipExplorerWithMetadata implements IROCrateExplorer {
+export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateExplorer {
   private _crate?: ROCrate | null = undefined;
 
   public get hasCrate(): boolean {
