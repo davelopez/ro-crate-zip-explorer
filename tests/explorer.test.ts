@@ -59,6 +59,7 @@ const testExplorer = (zipTestFile: TestZipFile) => {
   beforeAll(async () => {
     explorer = new ROCrateZipExplorer(zipTestFile.source);
     zipArchive = await explorer.open();
+    await explorer.extractMetadata();
   });
 
   describe("open", () => {
