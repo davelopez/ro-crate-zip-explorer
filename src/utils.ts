@@ -1,5 +1,7 @@
 // Inspired from: https://github.com/agarrec-vivlio/zip-stream-cli/blob/main/src/utils/rangeFetcher.js
 
+import type { AnyZipEntry, ZipFileEntry, ZipSource } from "./interfaces.js";
+
 /**
  * Contains information about the range support of a URL.
  * The information is composed from some relevant headers from the response.
@@ -126,4 +128,22 @@ export async function followRedirects(url: string): Promise<string> {
  */
 function isRedirectStatus(status: number): boolean {
   return status >= 300 && status < 400;
+}
+
+/**
+ * Type guard to check if the source of a ZIP archive is a remote URL.
+ * @param source - The source to check.
+ * @returns True if the source is a string (remote URL), false otherwise.
+ */
+export function isRemoteZip(source: ZipSource): source is string {
+  return typeof source === "string";
+}
+
+/**
+ * Type guard to check if a ZIP entry is of type File.
+ * @param source - The source to check.
+ * @returns True if the entry is a File, false if it is a Directory or undefined.
+ */
+export function isFileEntry(entry?: AnyZipEntry): entry is ZipFileEntry {
+  return entry !== undefined && entry.type === "File";
 }
