@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { ensureUrlSupportsRanges, followRedirects, getRange, validateUrl } from "../src/utils";
+import type { ZipDirectoryEntry, ZipFileEntry } from "../src";
+import type { ZipSource } from "../src/interfaces";
+import {
+  ensureUrlSupportsRanges,
+  followRedirects,
+  getRange,
+  isFileEntry,
+  isRemoteZip,
+  validateUrl,
+} from "../src/utils";
 
 describe("ensureUrlSupportsRanges", () => {
   it("should return range support information for a valid URL", async () => {
@@ -160,5 +169,49 @@ describe("followRedirects", () => {
 
     const result = await followRedirects("http://example.com");
     expect(result).toBe("http://example.com/relative-path");
+  });
+});
+
+describe("isFileEntry", () => {
+  const baseEntryMock = {
+    dateTime: new Date(),
+    headerOffset: 0,
+    compressionMethod: 0,
+    compressSize: 0,
+    fileSize: 0,
+    isCompressed: false,
+  };
+
+  it("should return true for a file entry", () => {
+    const fileMock: ZipFileEntry = {
+      type: "File",
+      path: "file.txt",
+      data() {
+        return Promise.resolve(new Uint8Array());
+      },
+      ...baseEntryMock,
+    };
+    expect(isFileEntry(fileMock)).toBe(true);
+  });
+
+  it("should return false for a directory entry", () => {
+    const directoryMock: ZipDirectoryEntry = {
+      type: "Directory",
+      path: "directory/",
+      ...baseEntryMock,
+    };
+    expect(isFileEntry(directoryMock)).toBe(false);
+  });
+});
+
+describe("isRemoteZip", () => {
+  it("should return true for a remote URL", () => {
+    const source: ZipSource = "http://example.com/file.zip";
+    expect(isRemoteZip(source)).toBe(true);
+  });
+
+  it("should return false for a local file path", () => {
+    const source: ZipSource = new File([], "file.zip");
+    expect(isRemoteZip(source)).toBe(false);
   });
 });
