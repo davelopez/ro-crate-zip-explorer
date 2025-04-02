@@ -16,6 +16,11 @@ import { RemoteZipService } from "./zip/remoteZipService.js";
 
 const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
 
+/**
+ * An abstract class for providing file metadata from a ZIP archive.
+ * This class implements the IFileMetadataProvider interface and provides
+ * methods for extracting metadata from files in the ZIP archive.
+ */
 abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
   private fileMetadataMap: Map<string, FileMetadata> = new Map<string, FileMetadata>();
 
@@ -66,6 +71,15 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    */
   protected abstract extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata>;
 
+  /**
+   * Extracts metadata from a ZIP file entry.
+   * @param entry - The ZIP file entry to extract metadata from.
+   * @returns A FileMetadata object containing the extracted metadata.
+   *
+   * @remarks
+   * This method merges the metadata extracted from the ZIP file entry itself with the metadata
+   * extracted by the `extractPartialFileMetadata` method.
+   */
   protected extractMetadataFromEntry(entry: ZipFileEntry): FileMetadata {
     const metadata = this.extractPartialFileMetadata(entry);
 
@@ -104,10 +118,20 @@ export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExp
     return this.ensureZipArchiveOpen().entries;
   }
 
+  /**
+   * The underlying ZIP archive object.
+   * @throws Throws an error if the ZIP archive is not open.
+   * @returns The opened ZIP archive.
+   */
   public get zipArchive(): ZipArchive {
     return this.ensureZipArchiveOpen();
   }
 
+  /**
+   * Ensures that the ZIP archive is open and returns it.
+   * @throws Throws an error if the ZIP archive is not open.
+   * @returns The opened ZIP archive.
+   */
   public ensureZipArchiveOpen(): ZipArchive {
     if (!this._zipArchive) {
       throw new Error("Please call open() before accessing the ZIP archive");
@@ -141,6 +165,25 @@ export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExp
   }
 }
 
+/**
+ * An abstract class for exploring the contents of a ZIP archive that contains additional files that
+ * provide metadata for the files in the archive. It is used as a base class for
+ * `ROCrateZipExplorer` and other ZIP explorers that require metadata extraction.
+ *
+ * You can either pass a File object representing a ZIP archive, a URL string pointing to a remotely hosted ZIP archive
+ * or an instance of IZipExplorer.
+ *
+ * Passing an instance of IZipExplorer allows you to reuse the same basic information about the ZIP archive
+ * without having to open it again.
+ *
+ * You must implement the `loadMetadata` method to load the metadata from the ZIP archive (usually from a file in the archive) in
+ * order to extract additional metadata for the files in the archive. You also need to implement the
+ * `extractPartialFileMetadata` method to extract the metadata from the file entry itself once the metadata
+ * has been loaded.
+ *
+ * For an example of how to implement a custom ZIP explorer, which loads metadata from a file in the archive,
+ * see the `ROCrateZipExplorer` class.
+ */
 export abstract class AbstractZipExplorer extends AbstractFileMetadataProvider implements IZipExplorer {
   protected readonly explorer: IZipExplorer;
 
@@ -161,6 +204,11 @@ export abstract class AbstractZipExplorer extends AbstractFileMetadataProvider i
     return this.explorer.zipArchive;
   }
 
+  /**
+   * Ensures that the ZIP archive is open and returns it.
+   * @throws Throws an error if the ZIP archive is not open.
+   * @returns The opened ZIP archive.
+   */
   public ensureZipArchiveOpen(): ZipArchive {
     return this.explorer.zipArchive;
   }

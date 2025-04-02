@@ -10,9 +10,19 @@ export type ZipSource = File | string;
  * explore its contents, and extract files from it.
  */
 export interface IZipExplorer extends IFileMetadataProvider {
-  /** A map of file names to their corresponding file information objects. */
+  /**
+   * A map of file names to their corresponding file information objects.
+   * This map is populated when the ZIP archive is opened.
+   * The keys are the file names, and the values are the file information objects.
+   * The file information objects can be either ZipFileEntry or ZipDirectoryEntry.
+   * @throws Throws an error if the ZIP archive is not opened yet.
+   */
   readonly entries: Map<string, AnyZipEntry>;
 
+  /**
+   * The underlying ZIP archive object.
+   * @throws Throws an error if the ZIP archive is not opened yet.
+   */
   readonly zipArchive: ZipArchive;
 
   /**
@@ -34,6 +44,9 @@ export interface IZipExplorer extends IFileMetadataProvider {
   getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array>;
 }
 
+/**
+ * Represents metadata associated with a file in a ZIP archive.
+ */
 export interface FileMetadata {
   /** The name of the file. */
   name: string;
@@ -43,11 +56,33 @@ export interface FileMetadata {
   description?: string;
 }
 
+/**
+ * Represents a provider for extracting metadata from files in a ZIP archive.
+ */
 export interface IFileMetadataProvider {
+  /**
+   * Extracts metadata from the ZIP archive.
+   *
+   * This method should be called after the ZIP archive is opened.
+   * It loads the metadata from the contents of the ZIP archive
+   * and extracts metadata from each file entry.
+   * @returns A promise that resolves when the metadata is extracted.
+   * @throws Throws an error if the metadata cannot be extracted.
+   */
   extractMetadata(): Promise<void>;
+
+  /**
+   * Extracts metadata from a specific file entry in the ZIP archive.
+   * @param entry - The file information object.
+   * @returns The extracted metadata for the file entry.
+   * @throws Throws an error if the metadata cannot be extracted.
+   */
   getFileEntryMetadata(entry: ZipFileEntry): FileMetadata;
 }
 
+/**
+ * Provides access to the RO-Crate metadata in a RO-Crate ZIP archive.
+ */
 export interface IROCrateExplorer {
   /**
    * Determines if the ZIP archive contains an RO-Crate manifest.

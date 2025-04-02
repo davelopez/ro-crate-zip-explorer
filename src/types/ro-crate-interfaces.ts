@@ -129,6 +129,9 @@ interface NodeRef {
   readonly "@id": string;
 }
 
+/**
+ * This interface represents an entity in the RO-Crate metadata model.
+ */
 export interface Entity extends RawEntity, NodeRef {
   // TODO: Add more properties as needed
 }
