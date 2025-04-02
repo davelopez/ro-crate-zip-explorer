@@ -50,18 +50,27 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
 
   /**
    * Loads the metadata from the ZIP archive.
-   * This method should be implemented by subclasses to provide specific metadata extraction logic.
+   *
+   * **This method should be implemented by subclasses since it is specific to the type of metadata being loaded.**
+   *
+   * **The default implementation does nothing.**
+   *
    * @returns A promise that resolves when the metadata is loaded.
    * @throws Throws an error if the metadata cannot be loaded.
    * @remarks
    * This method is called by the `extractMetadata` method to load the metadata from the contents of the ZIP archive
    * prior to extracting the metadata from each file entry.
    */
-  protected abstract loadMetadata(): Promise<void>;
+  protected loadMetadata(): Promise<void> {
+    return Promise.resolve();
+  }
 
   /**
    * Extracts partial file metadata from a ZIP file entry.
-   * This method should be implemented by subclasses to provide specific metadata extraction logic.
+   *
+   * **This method should be implemented by subclasses to provide specific metadata extraction logic.**
+   *
+   * The default implementation extracts the file name and size from the zip file entry.
    * @param entry - The ZIP file entry to extract metadata from.
    * @returns A partial FileMetadata object containing the extracted metadata.
    *
@@ -69,7 +78,25 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * This method returns all the metadata that can be extracted from the information provided by loadMetadata.
    * The metadata returned by this method is merged with the metadata extracted from the ZIP file entry itself.
    */
-  protected abstract extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata>;
+  protected extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+    return this.extractBasicFileMetadata(entry);
+  }
+
+  /**
+   * Extracts basic file metadata from a ZIP file entry.
+   * @param entry - The ZIP file entry to extract metadata from.
+   * @returns A partial FileMetadata object containing the extracted metadata.
+   *
+   * @remarks
+   * This method extracts the file name and size from the zip file entry.
+   */
+  protected extractBasicFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+    return {
+      name: entry.path.split("/").pop() ?? entry.path,
+      size: entry.fileSize,
+      description: undefined,
+    };
+  }
 
   /**
    * Extracts metadata from a ZIP file entry.
@@ -144,20 +171,6 @@ export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExp
       this._zipArchive = await this.zipService.open();
     }
     return this._zipArchive;
-  }
-
-  protected loadMetadata(): Promise<void> {
-    // No metadata loading is performed here as the basic metadata comes directly from the file entry.
-    // Subclasses can override this method to implement specific metadata loading logic.
-    return Promise.resolve();
-  }
-
-  protected extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
-    return {
-      name: entry.path.split("/").pop() ?? entry.path,
-      size: entry.fileSize,
-      description: undefined,
-    };
   }
 
   public async getFileContents(fileEntry: ZipFileEntry) {
@@ -257,6 +270,11 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
     throw new Error("No RO-Crate metadata found in the ZIP archive");
   }
 
+  /**
+   * Loads the RO-Crate metadata from the ZIP archive.
+   * This method is called by the `extractMetadata` method to load the metadata from the contents of the ZIP archive
+   * prior to extracting the metadata from each file entry.
+   */
   protected override async loadMetadata(): Promise<void> {
     if (!this._crate) {
       this._crate = await this.extractROCrateMetadata(this.ensureZipArchiveOpen());
@@ -264,13 +282,20 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
   }
 
   protected override extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+    const base = this.extractBasicFileMetadata(entry);
     const entity = this.crate.getEntity(entry.path);
     if (!entity) {
-      return {};
+      return base;
     }
+    // Enhance the base metadata (from the zip entry) with additional properties that can be extracted
+    // from the entity in the RO-Crate graph.
+    const entityName = "name" in entity && typeof entity.name === "string" ? entity.name : undefined;
+    const entityDescription =
+      "description" in entity && typeof entity.description === "string" ? entity.description : undefined;
     return {
-      name: "name" in entity && typeof entity.name === "string" ? entity.name : undefined,
-      description: "description" in entity && typeof entity.description === "string" ? entity.description : undefined,
+      ...base,
+      name: entityName ?? base.name,
+      description: entityDescription ?? base.description,
     };
   }
 
