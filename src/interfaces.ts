@@ -15,8 +15,6 @@ export interface IZipExplorer extends IFileMetadataProvider {
 
   readonly zipArchive: ZipArchive;
 
-  ensureZipArchiveOpen(): ZipArchive;
-
   /**
    * Opens the ZIP archive and performs any necessary initialization.
    * @returns A promise that resolves when the ZIP archive is opened.

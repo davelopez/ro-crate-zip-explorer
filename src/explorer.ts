@@ -92,8 +92,8 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
  * ```
  */
 export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExplorer {
-  protected readonly zipService: ZipService;
-  protected _zipArchive?: ZipArchive;
+  private readonly zipService: ZipService;
+  private _zipArchive?: ZipArchive;
 
   public constructor(public readonly source: ZipSource) {
     super();
@@ -162,7 +162,7 @@ export abstract class AbstractZipExplorer extends AbstractFileMetadataProvider i
   }
 
   public ensureZipArchiveOpen(): ZipArchive {
-    return this.explorer.ensureZipArchiveOpen();
+    return this.explorer.zipArchive;
   }
 
   public open(): Promise<ZipArchive> {
@@ -196,7 +196,7 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
   private _crate?: ROCrate | null = undefined;
 
   public get hasCrate(): boolean {
-    this.explorer.ensureZipArchiveOpen();
+    this.ensureZipArchiveOpen();
     return Boolean(this._crate);
   }
 
@@ -205,13 +205,13 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
       // Here only an immutable view of the RO-Crate is returned
       return this._crate as ROCrateImmutableView;
     }
-    this.explorer.ensureZipArchiveOpen();
+    this.ensureZipArchiveOpen();
     throw new Error("No RO-Crate metadata found in the ZIP archive");
   }
 
   protected override async loadMetadata(): Promise<void> {
     if (!this._crate) {
-      this._crate = await this.extractROCrateMetadata(this.explorer.ensureZipArchiveOpen());
+      this._crate = await this.extractROCrateMetadata(this.ensureZipArchiveOpen());
     }
   }
 
