@@ -38,7 +38,8 @@ export abstract class AbstractZipService implements ZipService {
       // This is useful for files that are stored in a directory structure
       // but are being accessed by their file name only
       // e.g., "dir/file.txt" should match "file.txt"
-      const foundEntry = entries.get(fileName) ?? findEntryMatching((entry) => entry.path.endsWith(fileName));
+      const foundEntry =
+        entries.get(fileName) ?? findEntryMatching((entry) => entry.path.split("/").pop() === fileName);
       if (!isFileEntry(foundEntry)) {
         return undefined;
       }

@@ -31,6 +31,11 @@ describe("LocalZipService Implementation", async () => {
       const file = zipArchive.findFileByName("nonexistent.txt");
       expect(file).toBeUndefined();
     });
+
+    it("should return undefined if the file name is not exactly matched", () => {
+      const file = zipArchive.findFileByName(testFileNameSufix);
+      expect(file).toBeUndefined();
+    });
   });
 
   testZipService(testFile);
