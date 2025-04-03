@@ -85,12 +85,12 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
   /**
    * Extracts basic file metadata from a ZIP file entry.
    * @param entry - The ZIP file entry to extract metadata from.
-   * @returns A partial FileMetadata object containing the extracted metadata.
+   * @returns A FileMetadata object containing basic metadata from the ZIP file entry.
    *
    * @remarks
    * This method extracts the file name and size from the zip file entry.
    */
-  protected extractBasicFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+  protected extractBasicFileMetadata(entry: ZipFileEntry): FileMetadata {
     return {
       name: entry.path.split("/").pop() ?? entry.path,
       size: entry.fileSize,
@@ -108,12 +108,13 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * extracted by the `extractPartialFileMetadata` method.
    */
   protected extractMetadataFromEntry(entry: ZipFileEntry): FileMetadata {
+    const basicMetadata = this.extractBasicFileMetadata(entry);
     const metadata = this.extractPartialFileMetadata(entry);
 
     const fullMetadata: FileMetadata = {
-      name: metadata.name ?? entry.path.split("/").pop() ?? entry.path,
-      size: metadata.size ?? entry.fileSize,
-      description: metadata.description,
+      name: metadata.name ?? basicMetadata.name,
+      size: metadata.size ?? basicMetadata.size,
+      description: metadata.description ?? basicMetadata.description,
     };
 
     return fullMetadata;
@@ -257,8 +258,7 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
   private _crate?: ROCrate | null = undefined;
 
   public get hasCrate(): boolean {
-    this.ensureZipArchiveOpen();
-    return Boolean(this._crate);
+    return Boolean(this.ensureZipArchiveOpen().findFileByName(ROCRATE_METADATA_FILENAME));
   }
 
   public get crate(): ROCrateImmutableView {
