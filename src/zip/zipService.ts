@@ -7,15 +7,8 @@
  */
 
 import * as pako from "pako";
-import type {
-  AnyZipEntry,
-  ZipArchive,
-  ZipDirectoryEntry,
-  ZipEntry,
-  ZipFileEntry,
-  ZipService,
-  ZipSource,
-} from "../interfaces.js";
+import type { AnyZipEntry, ZipArchive, ZipDirectoryEntry, ZipEntry, ZipService, ZipSource } from "../interfaces.js";
+import { isFileEntry } from "../utils.js";
 
 /**
  * Abstract class that provides common functionality for ZIP archive services.
@@ -29,29 +22,37 @@ export abstract class AbstractZipService implements ZipService {
     await this.doOpen();
     this._eocdData = await this.loadEOCDData();
     const entries = await this.getZipEntries();
+
+    const findEntryMatching = (predicate: (entry: AnyZipEntry) => boolean) => {
+      for (const entry of entries.values()) {
+        if (predicate(entry)) {
+          return entry;
+        }
+      }
+      return undefined;
+    };
+
+    const findFileByName = (fileName: string) => {
+      // Try lookup by exact name first.
+      // If not found, try any entry that ends with the file name.
+      // This is useful for files that are stored in a directory structure
+      // but are being accessed by their file name only
+      // e.g., "dir/file.txt" should match "file.txt"
+      const foundEntry =
+        entries.get(fileName) ?? findEntryMatching((entry) => entry.path.split("/").pop() === fileName);
+      if (!isFileEntry(foundEntry)) {
+        return undefined;
+      }
+      return foundEntry;
+    };
+
     const zipArchive: ZipArchive = {
       entries,
       size: this.zipSize,
       source: this.source,
       isZip64: this.eocdData.isZip64,
-      findFileByName: (fileName: string) => {
-        let foundFileEntry: ZipFileEntry | undefined;
-        for (const entry of entries.values()) {
-          if (entry.type === "File" && entry.path.endsWith(fileName)) {
-            foundFileEntry = entry;
-            break;
-          }
-        }
-        return foundFileEntry;
-      },
-      findEntry: (predicate: (entry: AnyZipEntry) => boolean) => {
-        for (const entry of entries.values()) {
-          if (predicate(entry)) {
-            return entry;
-          }
-        }
-        return undefined;
-      },
+      findFileByName,
+      findEntryMatching,
     };
     this.cleanupAfterInitialization();
     return zipArchive;

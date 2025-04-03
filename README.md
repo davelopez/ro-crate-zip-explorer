@@ -34,32 +34,59 @@ yarn add ro-crate-zip-explorer
 
 ### Importing the Library
 
+For ZIP files containing **RO-Crate metadata**:
+
 ```typescript
 import { ROCrateZipExplorer } from "ro-crate-zip-explorer";
+```
+
+or for any other kind of ZIP file:
+
+```typescript
+import { ZipExplorer } from "ro-crate-zip-explorer";
 ```
 
 ### Opening a Local RO-Crate ZIP Archive
 
 ```typescript
+import { ROCrateZipExplorer } from "ro-crate-zip-explorer";
+
 const fileInput = document.querySelector('input[type="file"]');
 
 fileInput.addEventListener("change", async (event) => {
   const file = event.target.files[0];
-  const explorer = new ROCrateZipExplorer(file);
-  const zip = await explorer.open();
 
-  console.log("Total files and directories in the ZIP:", zip.entries.length);
-  console.log("RO-Crate Root Dataset:", explorer.crate.rootDataset);
+  // Create a new instance of ROCrateZipExplorer
+  const explorer = new ROCrateZipExplorer(file);
+
+  // Open the ZIP archive to read the directory structure
+  await explorer.open();
+
+  console.log("Total files and directories in the ZIP:", explorer.entries.length);
+
+  // Check if the ZIP file contains a crate
+  if (explorer.hasCrate) {
+    console.log("RO-Crate metadata found in the ZIP archive.");
+
+    // Ensure the crate metadata is loaded to access the crate
+    await explorer.extractMetadata();
+
+    console.log("RO-Crate Root Dataset:", explorer.crate.rootDataset);
+  } else {
+    console.log("No RO-Crate metadata found in the ZIP archive.");
+  }
 });
 ```
 
 ### Opening a Remote RO-Crate ZIP Archive
 
 ```typescript
-const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
-const zip = await explorer.open();
+import { ROCrateZipExplorer } from "ro-crate-zip-explorer";
 
-console.log("Total files and directories in the ZIP:", zip.entries.length);
+const explorer = new ROCrateZipExplorer("https://example.com/archive.zip");
+await explorer.open();
+
+console.log("Total files and directories in the ZIP:", explorer.entries.length);
 console.log("RO-Crate Root Dataset:", explorer.crate.rootDataset);
 ```
 
@@ -74,6 +101,25 @@ console.log("RO-Crate Root Dataset:", explorer.crate.rootDataset);
 >
 > console.log("Total files and directories in the ZIP:", zip.entries.length);
 > ```
+
+### Promoting a ZipExplorer to ROCrateZipExplorer
+
+```typescript
+import { ZipExplorer, ROCrateZipExplorer } from "ro-crate-zip-explorer";
+
+const explorer = new ZipExplorer("https://example.com/archive.zip");
+await explorer.open();
+
+// Just wrap the ZipExplorer with ROCrateZipExplorer
+const roCrateExplorer = new ROCrateZipExplorer(explorer);
+
+// Now you can use the ROCrateZipExplorer methods
+// You don't need to open the ZIP again but make sure to call extractMetadata
+// to load the RO-Crate metadata
+await roCrateExplorer.extractMetadata();
+
+console.log("RO-Crate Root Dataset:", roCrateExplorer.crate.rootDataset);
+```
 
 > [!IMPORTANT]
 > This library uses the **Fetch API** to load remote ZIP archives. Ensure the server provides proper **CORS headers** if hosting files on another domain.
