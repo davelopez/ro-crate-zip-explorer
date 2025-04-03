@@ -5,6 +5,34 @@ import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "
 describe("LocalZipService Implementation", async () => {
   const testFile = await testFileProvider.local("rocrate-test.zip");
 
+  describe("Find files by name", () => {
+    let zipArchive: ZipArchive;
+    const testFileNameSufix = "1690cb0a3211e932.txt";
+    const testFileName = `Trim_on_data_1_${testFileNameSufix}`;
+    const testFilePath = `datasets/${testFileName}`;
+
+    beforeAll(async () => {
+      zipArchive = await testFile.zipService.open();
+    });
+
+    it("should find a file by its full path in the ZIP archive", () => {
+      const file = zipArchive.findFileByName(testFilePath);
+      assert(file, "File not found in the ZIP archive");
+      expect(file.path).toBe(testFilePath);
+    });
+
+    it("should find a file by its name in the ZIP archive", () => {
+      const file = zipArchive.findFileByName(testFileName);
+      assert(file, "File not found in the ZIP archive");
+      expect(file.path).toBe(testFilePath);
+    });
+
+    it("should return undefined if the file is not found", () => {
+      const file = zipArchive.findFileByName("nonexistent.txt");
+      expect(file).toBeUndefined();
+    });
+  });
+
   testZipService(testFile);
 
   describe("ZIP64 support", async () => {

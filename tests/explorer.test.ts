@@ -134,19 +134,6 @@ const testExplorerWithFile = (zipTestFile: TestZipFile) => {
       expect(fileContents.byteLength).toBe(10253);
     });
   });
-
-  describe("Find files by name", () => {
-    it("should find a file by its name in the ZIP archive", () => {
-      const file = explorer.zipArchive.findFileByName("ro-crate-metadata.json");
-      assert(file, "File not found in the ZIP archive");
-      expect(file.path).toBe("ro-crate-metadata.json");
-    });
-
-    it("should return undefined if the file is not found", () => {
-      const file = explorer.zipArchive.findFileByName("nonexistent.txt");
-      expect(file).toBeUndefined();
-    });
-  });
 };
 
 const testROCrateExplorer = (explorer: ROCrateZipExplorer) => {
