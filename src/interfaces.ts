@@ -129,7 +129,7 @@ export interface ZipArchive {
    * @returns The first file information object that matches the criteria or `undefined` if no match is found.
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called).
    */
-  findEntry(predicate: (entry: AnyZipEntry) => boolean): AnyZipEntry | undefined;
+  findEntryMatching(predicate: (entry: AnyZipEntry) => boolean): AnyZipEntry | undefined;
 }
 
 /**
