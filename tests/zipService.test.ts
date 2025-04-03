@@ -1,5 +1,4 @@
-import assert from "assert";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { assert, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ZipArchive } from "../src/interfaces";
 import { testFileProvider, verifyCrateMetadataContext, type TestZipFile } from "./testUtils";
 
@@ -68,9 +67,7 @@ const testZipService = (zipTestFile: TestZipFile) => {
         expect(zipArchive.entries.size).toBeGreaterThan(0);
         const remoteMetadataFile = zipArchive.findFileByName("ro-crate-metadata.json");
 
-        if (!remoteMetadataFile) {
-          throw new Error("No RO-Crate metadata file found in the ZIP archive");
-        }
+        assert(remoteMetadataFile, "No RO-Crate metadata file found in the ZIP archive");
 
         const metadataFileData = await zipService.extractFile(remoteMetadataFile);
         expect(metadataFileData).toBeDefined();
