@@ -1,6 +1,6 @@
 {
   "name": "ro-crate-zip-explorer",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A TypeScript library for browsing and extracting contents within RO-Crate zip archives.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
