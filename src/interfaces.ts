@@ -70,6 +70,10 @@ interface BasicFileMetadata {
 
 /**
  * Contains metadata associated with a file in a ZIP archive.
+ *
+ * This metadata is extracted from the file system or
+ * from the metadata provided by the explorer.
+ * See {@link IFileMetadataProvider} for more details.
  */
 export interface ZipEntryMetadata extends BasicFileMetadata {
   /**
