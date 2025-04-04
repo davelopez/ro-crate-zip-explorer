@@ -1,5 +1,13 @@
 # ro-crate-zip-explorer
 
+## 0.3.1
+
+### Patch Changes
+
+- 00fb8e5: Improve file metadata
+
+  Updated ZipEntryMetadata to include additional metadata fields for enhanced file information.
+
 ## 0.3.0
 
 ### Minor Changes
