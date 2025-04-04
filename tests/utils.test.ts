@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ZipDirectoryEntry, ZipFileEntry } from "../src";
 import type { ZipSource } from "../src/interfaces";
 import {
+  combineDefined,
   ensureUrlSupportsRanges,
   followRedirects,
   getRange,
@@ -213,5 +214,38 @@ describe("isRemoteZip", () => {
   it("should return false for a local file path", () => {
     const source: ZipSource = new File([], "file.zip");
     expect(isRemoteZip(source)).toBe(false);
+  });
+});
+
+describe("combineDefined", () => {
+  it("should merge properties from source into target", () => {
+    const target = { a: 1, b: 2 };
+    const source = { b: 3, c: 4 };
+    const result = combineDefined(target, source);
+    expect(result).toEqual({ a: 1, b: 3, c: 4 });
+  });
+
+  it("should ignore undefined properties in the source", () => {
+    const target = { a: 1, b: 2 };
+    const source = { b: undefined, c: 4 };
+    const result = combineDefined(target, source);
+    expect(result).toEqual({ a: 1, b: 2, c: 4 });
+  });
+
+  it("should return the target if the source is empty", () => {
+    const target = { a: 1, b: 2 };
+    const source = {};
+    const result = combineDefined(target, source);
+    expect(result).toEqual(target);
+  });
+
+  it("should return a new object without modifying the original target or source", () => {
+    const target = { a: 1, b: 2 };
+    const source = { b: 3, c: 4 };
+    const result = combineDefined(target, source);
+    expect(result).not.toBe(target);
+    expect(result).not.toBe(source);
+    expect(target).toEqual({ a: 1, b: 2 });
+    expect(source).toEqual({ b: 3, c: 4 });
   });
 });
