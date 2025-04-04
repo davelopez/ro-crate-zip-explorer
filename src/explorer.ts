@@ -1,16 +1,17 @@
 import { ROCrate } from "ro-crate";
 import type {
   AnyZipEntry,
-  FileMetadata,
   IFileMetadataProvider,
   IROCrateExplorer,
   IZipExplorer,
   ZipArchive,
+  ZipEntryMetadata,
   ZipFileEntry,
   ZipService,
   ZipSource,
 } from "./interfaces.js";
 import type { ROCrateImmutableView } from "./types/ro-crate-interfaces.js";
+import { combineDefined } from "./utils.js";
 import { LocalZipService } from "./zip/localZipService.js";
 import { RemoteZipService } from "./zip/remoteZipService.js";
 
@@ -22,7 +23,7 @@ const ROCRATE_METADATA_FILENAME = "ro-crate-metadata.json";
  * methods for extracting metadata from files in the ZIP archive.
  */
 abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
-  private fileMetadataMap: Map<string, FileMetadata> = new Map<string, FileMetadata>();
+  private fileMetadataMap: Map<string, ZipEntryMetadata> = new Map<string, ZipEntryMetadata>();
 
   public abstract get entries(): Map<string, AnyZipEntry>;
 
@@ -40,7 +41,7 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
     }
   }
 
-  public getFileEntryMetadata(entry: ZipFileEntry): FileMetadata {
+  public getFileEntryMetadata(entry: ZipFileEntry): ZipEntryMetadata {
     const metadata = this.fileMetadataMap.get(entry.path);
     if (!metadata) {
       throw new Error(`Metadata for file ${entry.path} not found. Make sure to call extractMetadata() first.`);
@@ -78,7 +79,7 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * This method returns all the metadata that can be extracted from the information provided by loadMetadata.
    * The metadata returned by this method is merged with the metadata extracted from the ZIP file entry itself.
    */
-  protected extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+  protected extractPartialFileMetadata(entry: ZipFileEntry): Partial<ZipEntryMetadata> {
     return this.extractBasicFileMetadata(entry);
   }
 
@@ -90,10 +91,14 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * @remarks
    * This method extracts the file name and size from the zip file entry.
    */
-  protected extractBasicFileMetadata(entry: ZipFileEntry): FileMetadata {
+  protected extractBasicFileMetadata(entry: ZipFileEntry): ZipEntryMetadata {
     return {
+      path: entry.path,
+      entry: entry,
       name: entry.path.split("/").pop() ?? entry.path,
       size: entry.fileSize,
+      dateTime: entry.dateTime,
+      // TODO: read comment from the zip entry?
       description: undefined,
     };
   }
@@ -107,17 +112,10 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * This method merges the metadata extracted from the ZIP file entry itself with the metadata
    * extracted by the `extractPartialFileMetadata` method.
    */
-  protected extractMetadataFromEntry(entry: ZipFileEntry): FileMetadata {
-    const basicMetadata = this.extractBasicFileMetadata(entry);
-    const metadata = this.extractPartialFileMetadata(entry);
-
-    const fullMetadata: FileMetadata = {
-      name: metadata.name ?? basicMetadata.name,
-      size: metadata.size ?? basicMetadata.size,
-      description: metadata.description ?? basicMetadata.description,
-    };
-
-    return fullMetadata;
+  protected extractMetadataFromEntry(entry: ZipFileEntry): ZipEntryMetadata {
+    const entryMetadata = this.extractBasicFileMetadata(entry);
+    const partialMetadata = this.extractPartialFileMetadata(entry);
+    return combineDefined(entryMetadata, partialMetadata);
   }
 }
 
@@ -281,7 +279,7 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
     }
   }
 
-  protected override extractPartialFileMetadata(entry: ZipFileEntry): Partial<FileMetadata> {
+  protected override extractPartialFileMetadata(entry: ZipFileEntry): Partial<ZipEntryMetadata> {
     const base = this.extractBasicFileMetadata(entry);
     const entity = this.crate.getEntity(entry.path);
     if (!entity) {

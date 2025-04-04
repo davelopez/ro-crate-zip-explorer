@@ -45,15 +45,47 @@ export interface IZipExplorer extends IFileMetadataProvider {
 }
 
 /**
- * Represents metadata associated with a file in a ZIP archive.
+ * Represents the basic metadata associated with a file.
+ *
+ * This information is typically extracted from the file system or
+ * from the metadata provided by the explorer.
+ * See {@link IFileMetadataProvider} for more details.
  */
-export interface FileMetadata {
-  /** The name of the file. */
-  name: string;
+interface BasicFileMetadata {
+  /**
+   * The displayable name of the file.
+   * This is typically the file name without the path or extension.
+   */
+  readonly name: string;
+
   /** The size of the file in bytes. */
-  size: number;
+  readonly size: number;
+
+  /** The date and time when the file was last modified. */
+  readonly dateTime: Date;
+
   /** An optional description of the file. */
-  description?: string;
+  readonly description?: string;
+}
+
+/**
+ * Contains metadata associated with a file in a ZIP archive.
+ *
+ * This metadata is extracted from the file system or
+ * from the metadata provided by the explorer.
+ * See {@link IFileMetadataProvider} for more details.
+ */
+export interface ZipEntryMetadata extends BasicFileMetadata {
+  /**
+   * The full path of the file in the ZIP archive.
+   *
+   * @remarks
+   * **Serves as a unique identifier for the file within the archive.**
+   */
+  readonly path: string;
+
+  /** The associated zip entry information for this file in the ZIP archive. */
+  readonly entry: ZipFileEntry;
 }
 
 /**
@@ -77,7 +109,7 @@ export interface IFileMetadataProvider {
    * @returns The extracted metadata for the file entry.
    * @throws Throws an error if the metadata cannot be extracted.
    */
-  getFileEntryMetadata(entry: ZipFileEntry): FileMetadata;
+  getFileEntryMetadata(entry: ZipFileEntry): ZipEntryMetadata;
 }
 
 /**

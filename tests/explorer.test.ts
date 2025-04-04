@@ -87,7 +87,6 @@ const testExplorerWithFile = (zipTestFile: TestZipFile) => {
   beforeAll(async () => {
     explorer = new ZipExplorer(zipTestFile.source);
     await explorer.open();
-    await explorer.extractMetadata();
   });
 
   describe("open", () => {

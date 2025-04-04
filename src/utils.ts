@@ -147,3 +147,16 @@ export function isRemoteZip(source: ZipSource): source is string {
 export function isFileEntry(entry?: AnyZipEntry): entry is ZipFileEntry {
   return entry !== undefined && entry.type === "File";
 }
+
+/**
+ * Combines two objects, merging properties from the source into the target.
+ * If a property in the source is `undefined`, it will be ignored.
+ * @param target - The target object to merge properties into.
+ * @param source - The source object to merge properties from.
+ * @returns The merged object with properties from both target and source.
+ */
+export function combineDefined<T extends object>(target: T, source: Partial<T>): T {
+  // Merge the properties of source into target ignoring undefined values
+  const definedSource = Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined));
+  return { ...target, ...definedSource };
+}
