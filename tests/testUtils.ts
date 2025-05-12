@@ -9,7 +9,7 @@ import { RemoteZipService } from "../src/zip/remoteZipService.js";
 
 const readFile = util.promisify(fs.readFile);
 
-type TestFileNames = "rocrate-test.zip" | "zip64-test.zip" | "non-rocrate-test.zip";
+type TestFileNames = "rocrate-test.zip" | "zip64-test.zip" | "non-rocrate-test.zip" | "largefile.zip";
 
 const TestFileExpectations: Record<TestFileNames, TestZipExpectations> = {
   "rocrate-test.zip": {
@@ -25,6 +25,11 @@ const TestFileExpectations: Record<TestFileNames, TestZipExpectations> = {
   "non-rocrate-test.zip": {
     entriesCount: 1,
     zipSize: 218,
+    isZip64: false,
+  },
+  "largefile.zip": {
+    entriesCount: 1,
+    zipSize: 261118,
     isZip64: false,
   },
 };
@@ -112,4 +117,24 @@ export function verifyCrateMetadataContext(
   } else if (Array.isArray(context)) {
     expect(context[0]).toBe(expectedContextUrl);
   }
+}
+
+/**
+ * Returns the current memory usage of the process for array buffers.
+ * This function is useful for debugging and performance analysis.
+ */
+export function getMemoryUsage() {
+  return process.memoryUsage().arrayBuffers;
+}
+
+/**
+ * Computes the SHA-256 checksum of a given BufferSource.
+ * @param buffer The BufferSource to compute the checksum for.
+ * @returns A promise that resolves to the SHA-256 checksum as a hexadecimal string.
+ */
+export async function getArrayBufferChecksum(buffer: BufferSource): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex;
 }
