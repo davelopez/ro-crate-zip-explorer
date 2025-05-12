@@ -84,6 +84,100 @@ export abstract class AbstractZipService implements ZipService {
     }
   }
 
+  public extractFileStream(file: ZipEntry): ReadableStream<Uint8Array> {
+    if (file.type === "Directory") {
+      throw new Error("Cannot extract a directory.");
+    }
+
+    // A helper to get the exact file‐data range as a stream:
+    const getCompressedStream = async () => {
+      const offset = await this.calculateFileDataOffset(file);
+      return this.getRangeStream(offset, file.compressSize);
+    };
+
+    switch (file.compressionMethod) {
+      case 0:
+        // Stored (no compression): just pass bytes through
+        return new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const src = await getCompressedStream();
+            const reader = src.getReader();
+            let done = false;
+            while (!done) {
+              const result = await reader.read();
+              const { value, done: isDone } = result;
+              done = isDone;
+              if (value) {
+                controller.enqueue(value);
+              }
+            }
+            controller.close();
+          },
+        });
+
+      case 8:
+        // Deflate: pipe through a decompressor
+        if (typeof DecompressionStream !== "undefined") {
+          // Browser native:
+          return new ReadableStream<Uint8Array>({
+            async start(controller) {
+              const src = await getCompressedStream();
+              const deflateRawStream = src.pipeThrough(new DecompressionStream("deflate-raw"));
+              const reader = deflateRawStream.getReader();
+              let done = false;
+              while (!done) {
+                const result: ReadableStreamReadResult<Uint8Array> = await reader.read();
+                const { value, done: isDone } = result;
+                done = isDone;
+                if (value) {
+                  controller.enqueue(value);
+                }
+              }
+              controller.close();
+            },
+          });
+        } else {
+          // Fallback to pako streaming:
+          return new ReadableStream<Uint8Array>({
+            async start(controller) {
+              const inflator = new pako.Inflate();
+              const src = await getCompressedStream();
+              const reader = src.getReader();
+
+              let done = false;
+              while (!done) {
+                const { value, done: isDone } = await reader.read();
+                done = isDone;
+                if (value) {
+                  // push chunk into pako
+                  inflator.push(value, false);
+                  // flush any output blocks
+                  if (inflator.result) {
+                    controller.enqueue(inflator.result as Uint8Array);
+                    // inflator.result = undefined;
+                  }
+                }
+              }
+              // finalize decompression
+              inflator.push(new Uint8Array(), true);
+              if (inflator.result) {
+                controller.enqueue(inflator.result as Uint8Array);
+              }
+              controller.close();
+            },
+          });
+        }
+
+      default:
+        throw new Error(`Unsupported compression method: ${file.compressionMethod}`);
+    }
+  }
+
+  /**
+   * Returns a ReadableStream of the raw bytes for the given byte‐range.
+   */
+  protected abstract getRangeStream(start: number, length: number): Promise<ReadableStream<Uint8Array>>;
+
   /** The size of the ZIP archive in bytes. */
   protected abstract get zipSize(): number;
 

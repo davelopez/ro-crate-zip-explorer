@@ -30,4 +30,9 @@ export class LocalZipService extends AbstractZipService {
       reader.readAsArrayBuffer(blob);
     });
   }
+
+  protected override getRangeStream(start: number, length: number): Promise<ReadableStream<Uint8Array>> {
+    const blobSlice = this.zipFile.slice(start, start + length);
+    return Promise.resolve(blobSlice.stream());
+  }
 }
