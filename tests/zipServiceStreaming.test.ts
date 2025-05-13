@@ -1,98 +1,29 @@
 import { crc32, createCRC32 } from "hash-wasm";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import type { AnyZipEntry } from "../src/interfaces";
+import type { AnyZipEntry, ZipService, ZipSource } from "../src/interfaces";
 import { LocalZipService } from "../src/zip/localZipService";
 import { RemoteZipService } from "../src/zip/remoteZipService";
 
 import { getMemoryUsage, testFileProvider } from "./testUtils";
 
-describe("ZIP extraction memory usage", () => {
-  describe("LocalZipService extraction memory usage", () => {
+function runZipMemoryTests(
+  serviceName: string,
+  serviceFactory: (source: ZipSource) => ZipService,
+  getTestFile: () => Promise<{ source: ZipSource }>,
+) {
+  describe(`${serviceName} extraction memory usage`, () => {
     const expectedFile = {
       name: "largefile.bin",
       checksum: "2a0e7dbb",
     };
-    let service: LocalZipService;
+
+    let service: ZipService;
     let entry: AnyZipEntry;
 
     beforeAll(async () => {
-      const testFile = await testFileProvider.local("largefile.zip");
-      service = new LocalZipService(testFile.source as File);
-      const zipArchive = await service.open();
-      const targetEntry = zipArchive.entries.get(expectedFile.name);
-      if (!targetEntry || targetEntry.type === "Directory") {
-        throw new Error(`Entry "${expectedFile.name}" not found or is a directory`);
-      }
-      entry = targetEntry;
-    });
-
-    it(
-      "should load entire file into memory when using extractFile",
-      { timeout: 30_000 }, // This test can take a while
-      async () => {
-        const before = getMemoryUsage();
-
-        const fileBuffer = await service.extractFile(entry);
-
-        const after = getMemoryUsage();
-        const memoryUsed = after - before;
-
-        // Expect that at least the full uncompressed size was allocated
-        expect(memoryUsed).toBeGreaterThan(entry.fileSize);
-
-        // Expect that the checksum of the extracted file matches the expected checksum
-        const checkshum = await crc32(fileBuffer);
-        expect(checkshum).toBe(expectedFile.checksum);
-      },
-    );
-
-    it(
-      "extractFileStream should not load entire file into memory",
-      { timeout: 30_000 }, // This test can take a while
-      async () => {
-        const before = getMemoryUsage();
-
-        const hasher = await createCRC32();
-
-        // Streamed extraction
-        const stream = service.extractFileStream(entry);
-        const reader = stream.getReader();
-        let done = false;
-        while (!done) {
-          const result = await reader.read();
-          const { value, done: isDone } = result;
-          done = isDone;
-          // process chunks without buffering
-          if (value) {
-            hasher.update(value);
-          }
-        }
-
-        const after = getMemoryUsage();
-        const memoryUsed = after - before;
-
-        // Expect memory overhead to be small compared to file size
-        expect(memoryUsed).toBeLessThan(entry.fileSize * 0.1);
-
-        const hashHex = hasher.digest();
-        // Expect that the checksum of the extracted file matches the expected checksum
-        expect(hashHex).toBe(expectedFile.checksum);
-      },
-    );
-  });
-
-  describe("RemoteZipService extraction memory usage", () => {
-    const expectedFile = {
-      name: "largefile.bin",
-      checksum: "2a0e7dbb",
-    };
-    let service: RemoteZipService;
-    let entry: AnyZipEntry;
-
-    beforeAll(async () => {
-      const testFile = await testFileProvider.remote("largefile.zip");
-      service = new RemoteZipService(testFile.source as string);
+      const testFile = await getTestFile();
+      service = serviceFactory(testFile.source);
       const zipArchive = await service.open();
       const targetEntry = zipArchive.entries.get(expectedFile.name);
       if (!targetEntry || targetEntry.type === "Directory") {
@@ -116,19 +47,17 @@ describe("ZIP extraction memory usage", () => {
     });
 
     it("extractFileStream should not load entire file into memory", { timeout: 30_000 }, async () => {
-      const before = getMemoryUsage();
-
       const hasher = await createCRC32();
+
+      const before = getMemoryUsage();
 
       const stream = service.extractFileStream(entry);
       const reader = stream.getReader();
-
       let done = false;
       while (!done) {
         const result = await reader.read();
         const { value, done: isDone } = result;
         done = isDone;
-        // process chunks without buffering
         if (value) {
           hasher.update(value);
         }
@@ -138,9 +67,22 @@ describe("ZIP extraction memory usage", () => {
       const memoryUsed = after - before;
 
       expect(memoryUsed).toBeLessThan(entry.fileSize * 0.1);
-
       const checksum = hasher.digest();
       expect(checksum).toBe(expectedFile.checksum);
     });
   });
+}
+
+describe("ZIP extraction memory usage", () => {
+  runZipMemoryTests(
+    "LocalZipService",
+    (source) => new LocalZipService(source as File),
+    () => testFileProvider.local("largefile.zip"),
+  );
+
+  runZipMemoryTests(
+    "RemoteZipService",
+    (source) => new RemoteZipService(source as string),
+    () => testFileProvider.remote("largefile.zip"),
+  );
 });
