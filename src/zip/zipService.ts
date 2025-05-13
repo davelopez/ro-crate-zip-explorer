@@ -401,7 +401,11 @@ export abstract class AbstractZipService implements ZipService {
     if (entry.type === "Directory") {
       return entry as ZipDirectoryEntry;
     } else {
-      return { ...entry, data: () => this.extractFile(entry) };
+      return {
+        ...entry,
+        data: () => this.extractFile(entry),
+        stream: () => this.extractFileStream(entry),
+      };
     }
   }
 
