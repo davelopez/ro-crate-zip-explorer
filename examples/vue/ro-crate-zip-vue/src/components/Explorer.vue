@@ -8,8 +8,18 @@ interface Props {
 const props = defineProps<Props>();
 
 async function downloadFile(entry: ZipFileEntry) {
-  const fileData = await entry.data();
-  const blob = new Blob([fileData], { type: "application/octet-stream" });
+  const fileStream = entry.stream();
+  const reader = fileStream.getReader();
+  const chunks: Uint8Array[] = [];
+  let done = false;
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    if (value) {
+      chunks.push(value);
+    }
+    done = doneReading;
+  }
+  const blob = new Blob(chunks, { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
