@@ -126,15 +126,3 @@ export function verifyCrateMetadataContext(
 export function getMemoryUsage() {
   return process.memoryUsage().arrayBuffers;
 }
-
-/**
- * Computes the SHA-256 checksum of a given BufferSource.
- * @param buffer The BufferSource to compute the checksum for.
- * @returns A promise that resolves to the SHA-256 checksum as a hexadecimal string.
- */
-export async function getArrayBufferChecksum(buffer: BufferSource): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hashHex;
-}
