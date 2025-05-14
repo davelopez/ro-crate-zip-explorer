@@ -34,14 +34,23 @@ export interface IZipExplorer extends IFileMetadataProvider {
 
   /**
    * Extracts the contents of a file from the ZIP archive.
+   *
+   * **WARNING: This method loads the entire file into memory.** Use it only for small files.
+   * For larger files, consider using `getFileContentStream` instead.
+   *
    * @param fileEntry - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
    * @throws Throws an error if the file cannot be extracted.
-   *
-   * @remarks
-   * This loads the entire file into memory. Consider using this method only for small files.
    */
   getFileContents(fileEntry: ZipFileEntry): Promise<Uint8Array>;
+
+  /**
+   * Extracts the contents of a file from the ZIP archive as a ReadableStream.
+   * @param fileEntry - The file information object.
+   * @returns A ReadableStream of the file content.
+   * @throws Throws an error if the file cannot be extracted.
+   */
+  getFileContentStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array>;
 }
 
 /**
@@ -177,14 +186,23 @@ export interface ZipFileEntry extends ZipEntry {
 
   /**
    * Extracts the file content from the ZIP archive.
+   *
+   * **WARNING: This method loads the entire file into memory.** Use it only for small files.
+   * For larger files, consider using `dataStream` instead.
+   *
    * @returns A promise that resolves with the file content as a Uint8Array.
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
    * or if the file cannot be extracted.
-   *
-   * @remarks
-   * This loads the entire file into memory. Consider using this method only for small files.
    */
   data(): Promise<Uint8Array>;
+
+  /**
+   * Extracts the file content from the ZIP archive as a ReadableStream.
+   * @returns A ReadableStream of the file content.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
+   * or if the file cannot be extracted.
+   */
+  dataStream(): ReadableStream<Uint8Array>;
 }
 
 /**
@@ -208,12 +226,24 @@ export interface ZipService {
 
   /**
    * Extracts a single file from a ZIP archive.
-   * @param file - The file information object.
+   *
+   * **WARNING: This method loads the entire file into memory.** Use it only for small files.
+   * For larger files, consider using `extractFileStream` instead.
+   * @param file - The file entry object.
    * @returns A promise that resolves with the file content as a Uint8Array.
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
    * or if the file cannot be extracted.
    */
   extractFile(file: AnyZipEntry): Promise<Uint8Array>;
+
+  /**
+   * Extracts a file from a ZIP archive as a ReadableStream.
+   * @param file - The file entry object.
+   * @returns A ReadableStream of the file content.
+   * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
+   * or if the file cannot be extracted.
+   */
+  extractFileStream(file: ZipEntry): ReadableStream<Uint8Array>;
 }
 
 type EntryType = "File" | "Directory";

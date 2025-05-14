@@ -126,11 +126,32 @@ const testExplorerWithFile = (zipTestFile: TestZipFile) => {
 
   describe("File access", () => {
     it("should extract the contents of a file in the ZIP archive", async () => {
-      const file = explorer.zipArchive.findFileByName("ro-crate-metadata.json");
-      assert(file, "File not found in the ZIP archive");
-      const fileContents = await explorer.getFileContents(file);
+      const fileEntry = explorer.zipArchive.findFileByName("ro-crate-metadata.json");
+      assert(fileEntry, "File not found in the ZIP archive");
+      const fileContents = await explorer.getFileContents(fileEntry);
       expect(fileContents).toBeDefined();
       expect(fileContents.byteLength).toBe(10253);
+    });
+
+    it("should stream the contents of a file in the ZIP archive", async () => {
+      const fileEntry = explorer.zipArchive.findFileByName("ro-crate-metadata.json");
+      assert(fileEntry, "File not found in the ZIP archive");
+
+      const fileStream = explorer.getFileContentStream(fileEntry);
+      expect(fileStream).toBeDefined();
+
+      const reader = fileStream.getReader();
+      let totalBytes = 0;
+
+      for (let done = false; !done; ) {
+        const { done: isDone, value } = await reader.read();
+        done = isDone;
+        if (value) {
+          totalBytes += value.byteLength;
+        }
+      }
+
+      expect(totalBytes).toBe(10253);
     });
   });
 };

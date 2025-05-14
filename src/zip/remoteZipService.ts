@@ -22,4 +22,25 @@ export class RemoteZipService extends AbstractZipService {
   protected override async getRange(start: number, length: number): Promise<Uint8Array> {
     return getRange(this.url, start, length);
   }
+
+  /**
+   * Return a ReadableStream of exactly bytes [start…start+length-1].
+   */
+  protected override async getRangeStream(start: number, length: number): Promise<ReadableStream<Uint8Array>> {
+    const end = start + length - 1;
+    const res = await fetch(this.url, {
+      headers: { Range: `bytes=${start}-${end}` },
+    });
+
+    // HTTP 206 = Partial Content
+    if (!res.ok || res.status !== 206) {
+      throw new Error(`Range request failed: ${res.status} ${res.statusText}`);
+    }
+
+    if (!res.body) {
+      throw new Error("ReadableStream not supported by this environment");
+    }
+
+    return res.body;
+  }
 }

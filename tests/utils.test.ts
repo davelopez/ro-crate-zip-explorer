@@ -190,6 +190,9 @@ describe("isFileEntry", () => {
       data() {
         return Promise.resolve(new Uint8Array());
       },
+      dataStream() {
+        return new ReadableStream<Uint8Array>();
+      },
       ...baseEntryMock,
     };
     expect(isFileEntry(fileMock)).toBe(true);

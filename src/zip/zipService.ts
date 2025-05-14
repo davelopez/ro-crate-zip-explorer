@@ -84,6 +84,66 @@ export abstract class AbstractZipService implements ZipService {
     }
   }
 
+  public extractFileStream(file: ZipEntry): ReadableStream<Uint8Array> {
+    if (file.type === "Directory") {
+      throw new Error("Cannot extract a directory.");
+    }
+
+    const getCompressedStream = async () => {
+      const offset = await this.calculateFileDataOffset(file);
+      return this.getRangeStream(offset, file.compressSize);
+    };
+
+    switch (file.compressionMethod) {
+      case 0:
+        // Stored (no compression): just pass bytes through
+        return new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const src = await getCompressedStream();
+            const reader = src.getReader();
+            let done = false;
+            while (!done) {
+              const result = await reader.read();
+              const { value, done: isDone } = result;
+              done = isDone;
+              if (value) {
+                controller.enqueue(value);
+              }
+            }
+            controller.close();
+          },
+        });
+
+      case 8:
+        // Browser native deflate
+        return new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const src = await getCompressedStream();
+            const deflateRawStream = src.pipeThrough(new DecompressionStream("deflate-raw"));
+            const reader = deflateRawStream.getReader();
+            let done = false;
+            while (!done) {
+              const result: ReadableStreamReadResult<Uint8Array> = await reader.read();
+              const { value, done: isDone } = result;
+              done = isDone;
+              if (value) {
+                controller.enqueue(value);
+              }
+            }
+            controller.close();
+          },
+        });
+
+      default:
+        throw new Error(`Unsupported compression method: ${file.compressionMethod}`);
+    }
+  }
+
+  /**
+   * Returns a ReadableStream of the raw bytes for the given byte‐range.
+   */
+  protected abstract getRangeStream(start: number, length: number): Promise<ReadableStream<Uint8Array>>;
+
   /** The size of the ZIP archive in bytes. */
   protected abstract get zipSize(): number;
 
@@ -307,7 +367,11 @@ export abstract class AbstractZipService implements ZipService {
     if (entry.type === "Directory") {
       return entry as ZipDirectoryEntry;
     } else {
-      return { ...entry, data: () => this.extractFile(entry) };
+      return {
+        ...entry,
+        data: () => this.extractFile(entry),
+        dataStream: () => this.extractFileStream(entry),
+      };
     }
   }
 
