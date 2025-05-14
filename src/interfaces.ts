@@ -36,7 +36,7 @@ export interface IZipExplorer extends IFileMetadataProvider {
    * Extracts the contents of a file from the ZIP archive.
    *
    * **WARNING: This method loads the entire file into memory.** Use it only for small files.
-   * For larger files, consider using `getFileStream` instead.
+   * For larger files, consider using `getFileContentStream` instead.
    *
    * @param fileEntry - The file information object.
    * @returns A promise that resolves with the file content as a Uint8Array.
@@ -50,7 +50,7 @@ export interface IZipExplorer extends IFileMetadataProvider {
    * @returns A ReadableStream of the file content.
    * @throws Throws an error if the file cannot be extracted.
    */
-  getFileStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array>;
+  getFileContentStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array>;
 }
 
 /**
@@ -188,14 +188,11 @@ export interface ZipFileEntry extends ZipEntry {
    * Extracts the file content from the ZIP archive.
    *
    * **WARNING: This method loads the entire file into memory.** Use it only for small files.
-   * For larger files, consider using `stream` instead.
+   * For larger files, consider using `dataStream` instead.
    *
    * @returns A promise that resolves with the file content as a Uint8Array.
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
    * or if the file cannot be extracted.
-   *
-   * @remarks
-   * This loads the entire file into memory. Consider using this method only for small files.
    */
   data(): Promise<Uint8Array>;
 
@@ -205,7 +202,7 @@ export interface ZipFileEntry extends ZipEntry {
    * @throws Throws an error if the service is not initialized (i.e., if `open` has not been called)
    * or if the file cannot be extracted.
    */
-  stream(): ReadableStream<Uint8Array>;
+  dataStream(): ReadableStream<Uint8Array>;
 }
 
 /**

@@ -176,7 +176,7 @@ export class ZipExplorer extends AbstractFileMetadataProvider implements IZipExp
     return await this.zipService.extractFile(fileEntry);
   }
 
-  public getFileStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array> {
+  public getFileContentStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array> {
     return this.zipService.extractFileStream(fileEntry);
   }
 }
@@ -237,8 +237,8 @@ export abstract class AbstractZipExplorer extends AbstractFileMetadataProvider i
     return this.explorer.getFileContents(fileEntry);
   }
 
-  public getFileStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array> {
-    return this.explorer.getFileStream(fileEntry);
+  public getFileContentStream(fileEntry: ZipFileEntry): ReadableStream<Uint8Array> {
+    return this.explorer.getFileContentStream(fileEntry);
   }
 }
 

@@ -370,7 +370,7 @@ export abstract class AbstractZipService implements ZipService {
       return {
         ...entry,
         data: () => this.extractFile(entry),
-        stream: () => this.extractFileStream(entry),
+        dataStream: () => this.extractFileStream(entry),
       };
     }
   }

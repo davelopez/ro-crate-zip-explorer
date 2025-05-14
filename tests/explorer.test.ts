@@ -137,7 +137,7 @@ const testExplorerWithFile = (zipTestFile: TestZipFile) => {
       const fileEntry = explorer.zipArchive.findFileByName("ro-crate-metadata.json");
       assert(fileEntry, "File not found in the ZIP archive");
 
-      const fileStream = explorer.getFileStream(fileEntry);
+      const fileStream = explorer.getFileContentStream(fileEntry);
       expect(fileStream).toBeDefined();
 
       const reader = fileStream.getReader();
