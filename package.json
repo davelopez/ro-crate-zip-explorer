@@ -28,7 +28,8 @@
   "license": "MIT",
   "repository": "davelopez/ro-crate-zip-explorer",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
   "devDependencies": {
