@@ -1,5 +1,11 @@
 # ro-crate-zip-explorer
 
+## 0.4.1
+
+### Patch Changes
+
+- Include src directory in package for sourcemap resolution
+
 ## 0.4.0
 
 ### Minor Changes
