@@ -75,6 +75,9 @@ interface BasicFileMetadata {
 
   /** An optional description of the file. */
   readonly description?: string;
+
+  /** An optional alternate name for the file. */
+  readonly alternateName?: string;
 }
 
 /**
