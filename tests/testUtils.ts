@@ -9,7 +9,12 @@ import { RemoteZipService } from "../src/zip/remoteZipService.js";
 
 const readFile = util.promisify(fs.readFile);
 
-type TestFileNames = "rocrate-test.zip" | "zip64-test.zip" | "non-rocrate-test.zip" | "largefile.zip";
+type TestFileNames =
+  | "rocrate-test.zip"
+  | "zip64-test.zip"
+  | "non-rocrate-test.zip"
+  | "largefile.zip"
+  | "cwltool-runcrate.zip";
 
 const TestFileExpectations: Record<TestFileNames, TestZipExpectations> = {
   "rocrate-test.zip": {
@@ -30,6 +35,11 @@ const TestFileExpectations: Record<TestFileNames, TestZipExpectations> = {
   "largefile.zip": {
     entriesCount: 1,
     zipSize: 261118,
+    isZip64: false,
+  },
+  "cwltool-runcrate.zip": {
+    entriesCount: 34,
+    zipSize: 44826215,
     isZip64: false,
   },
 };

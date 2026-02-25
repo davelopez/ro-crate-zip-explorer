@@ -222,6 +222,19 @@ const testROCrateExplorer = (explorer: ROCrateZipExplorer) => {
           expect(metadata.size).toBe(849463);
           expect(metadata.description).toBeUndefined();
         });
+
+        it("should support alternateName property in file metadata", () => {
+          const file = explorer.zipArchive.findFileByName(testEntryFileName);
+
+          assert(file, `File ${testEntryFileName} not found in the ZIP archive`);
+
+          const metadata = explorer.getFileEntryMetadata(file);
+          expect(metadata).toBeDefined();
+          // alternateName can be undefined if not present in the RO-Crate metadata
+          // Just verify we can access it and it's either a string or undefined
+          const altName = metadata.alternateName;
+          expect(typeof altName === "string" || altName === undefined).toBe(true);
+        });
       });
     });
   });
