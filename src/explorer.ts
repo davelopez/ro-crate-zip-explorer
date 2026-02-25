@@ -28,17 +28,22 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
   public abstract get entries(): Map<string, AnyZipEntry>;
 
   public async extractMetadata(): Promise<void> {
+    console.debug("[AbstractFileMetadataProvider.extractMetadata] Starting metadata extraction");
     this.fileMetadataMap.clear();
 
     await this.loadMetadata();
+    console.debug("[AbstractFileMetadataProvider.extractMetadata] loadMetadata completed");
 
     const zipFileEntries = this.entries.values();
+    let count = 0;
     for (const entry of zipFileEntries) {
       if (entry.type === "File") {
+        count++;
         const metadata = this.extractMetadataFromEntry(entry);
         this.fileMetadataMap.set(entry.path, metadata);
       }
     }
+    console.debug(`[AbstractFileMetadataProvider.extractMetadata] Processed ${count} files`);
   }
 
   public getFileEntryMetadata(entry: ZipFileEntry): ZipEntryMetadata {
@@ -113,6 +118,7 @@ abstract class AbstractFileMetadataProvider implements IFileMetadataProvider {
    * extracted by the `extractPartialFileMetadata` method.
    */
   protected extractMetadataFromEntry(entry: ZipFileEntry): ZipEntryMetadata {
+    console.debug(`[extractMetadataFromEntry] Processing ${entry.path}, using ${this.constructor.name}`);
     const entryMetadata = this.extractBasicFileMetadata(entry);
     const partialMetadata = this.extractPartialFileMetadata(entry);
     return combineDefined(entryMetadata, partialMetadata);
@@ -283,38 +289,111 @@ export class ROCrateZipExplorer extends AbstractZipExplorer implements IROCrateE
    */
   protected override async loadMetadata(): Promise<void> {
     if (!this._crate) {
+      console.debug("[ROCrateZipExplorer] Loading RO-Crate metadata...");
       this._crate = await this.extractROCrateMetadata(this.ensureZipArchiveOpen());
+      console.debug("[ROCrateZipExplorer] RO-Crate loaded:", {
+        hasCrate: this._crate !== null,
+        graphSize: this._crate?.graphSize,
+      });
     }
   }
 
   protected override extractPartialFileMetadata(entry: ZipFileEntry): Partial<ZipEntryMetadata> {
     const base = this.extractBasicFileMetadata(entry);
-    const entity = this.crate.getEntity(entry.path);
-    if (!entity) {
+    console.debug(`[ROCrateZipExplorer.extractPartialFileMetadata] Processing entry:`, {
+      path: entry.path,
+      crateState: {
+        isDefined: this._crate !== undefined,
+        isNull: this._crate === null,
+      },
+    });
+    
+    // Check if crate is null or undefined - if so, return base metadata
+    if (this._crate === null || this._crate === undefined) {
+      console.warn(`[ROCrateZipExplorer.extractPartialFileMetadata] RO-Crate is ${this._crate === null ? 'null' : 'undefined'} for ${entry.path}`);
       return base;
     }
-    // Enhance the base metadata (from the zip entry) with additional properties that can be extracted
-    // from the entity in the RO-Crate graph.
-    const entityName = "name" in entity && typeof entity.name === "string" ? entity.name : undefined;
-    const entityDescription =
-      "description" in entity && typeof entity.description === "string" ? entity.description : undefined;
-    return {
-      ...base,
-      name: entityName ?? base.name,
-      description: entityDescription ?? base.description,
-    };
+
+    try {
+      // Now we know _crate is not null, so we can safely access the getter
+      const entity = this.crate.getEntity(entry.path);
+      console.debug(`[ROCrateZipExplorer.extractPartialFileMetadata] Entity lookup for ${entry.path}:`, {
+        found: !!entity,
+      });
+
+      if (!entity) {
+        console.debug(`[ROCrate] No entity found for path: ${entry.path}`);
+        return base;
+      }
+      console.debug(`[ROCrate] Entity found for path: ${entry.path}`);
+      // Enhance the base metadata (from the zip entry) with additional properties that can be extracted
+      // from the entity in the RO-Crate graph.
+      const entityName = "name" in entity && typeof entity.name === "string" 
+        ? entity.name 
+        : "alternateName" in entity && typeof entity.alternateName === "string"
+        ? entity.alternateName
+        : undefined;
+      const entityAlternateName =
+        "alternateName" in entity && typeof entity.alternateName === "string" ? entity.alternateName : undefined;
+      const entityDescription =
+        "description" in entity && typeof entity.description === "string" ? entity.description : undefined;
+      console.debug(`[ROCrate] Extracted metadata for ${entry.path}:`, {
+        name: entityName,
+        alternateName: entityAlternateName,
+        description: entityDescription,
+      });
+      return {
+        ...base,
+        name: entityName ?? base.name,
+        alternateName: entityAlternateName,
+        description: entityDescription ?? base.description,
+      };
+    } catch (error) {
+      console.error(`[ROCrateZipExplorer.extractPartialFileMetadata] Error processing ${entry.path}:`, error);
+      return base;
+    }
   }
 
   private async extractROCrateMetadata(zipArchive: ZipArchive): Promise<ROCrate | null> {
+    console.debug("[extractROCrateMetadata] Looking for ro-crate-metadata.json...");
     const crateEntry = zipArchive.findFileByName(ROCRATE_METADATA_FILENAME);
+    console.debug("[extractROCrateMetadata] Search result:", {
+      found: !!crateEntry,
+      filename: ROCRATE_METADATA_FILENAME,
+    });
+    
     if (!crateEntry) {
+      console.warn("[extractROCrateMetadata] ro-crate-metadata.json not found, listing available files:");
+      for (const [name, entry] of zipArchive.entries) {
+        console.debug(`  - ${name}`);
+      }
       return null;
     }
-    const crateData = await crateEntry.data();
-    const crateJson = new TextDecoder().decode(crateData);
-    const json = JSON.parse(crateJson) as Record<string, unknown>;
-    const crate = new ROCrate(json, { array: false, link: true });
-    return crate;
+
+    try {
+      console.debug("[extractROCrateMetadata] Reading file data...");
+      const crateData = await crateEntry.data();
+      console.debug("[extractROCrateMetadata] File data read, decoding...", {
+        byteLength: crateData.byteLength,
+      });
+      
+      const crateJson = new TextDecoder().decode(crateData);
+      console.debug("[extractROCrateMetadata] JSON decoded, parsing...", {
+        length: crateJson.length,
+      });
+      
+      const json = JSON.parse(crateJson) as Record<string, unknown>;
+      console.debug("[extractROCrateMetadata] JSON parsed, creating RO-Crate...");
+      
+      const crate = new ROCrate(json, { array: false, link: true });
+      console.debug("[extractROCrateMetadata] RO-Crate created successfully", {
+        graphSize: crate.graphSize,
+      });
+      return crate;
+    } catch (error) {
+      console.error("[extractROCrateMetadata] Error extracting RO-Crate metadata:", error);
+      return null;
+    }
   }
 }
 

@@ -8,7 +8,7 @@ interface Props {
 const props = defineProps<Props>();
 
 async function downloadFile(entry: ZipFileEntry) {
-  const fileStream = entry.stream();
+  const fileStream = entry.dataStream();
   const reader = fileStream.getReader();
   const chunks: Uint8Array[] = [];
   let done = false;
